@@ -366,25 +366,17 @@ const WardrobeOrganizer = () => {
             </h1>
             <p className="text-slate-500 mt-1 text-sm">Organize and manage your clothing collection</p>
           </div>
-          <button
-            onClick={clearAllData}
-            className="px-4 py-2 bg-red-500/90 text-white text-sm rounded-xl hover:bg-red-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
-          >
-            Clear All Data
-          </button>
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">My Wardrobe</h1>
           <div className="flex gap-2">
             <button
               onClick={() => setShowWishlistModal(true)}
-              className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 flex items-center gap-2"
+              className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 font-medium"
             >
               <Heart size={18} />
               View Wishlist ({wishlist.size})
             </button>
             <button
               onClick={clearAllData}
-              className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
+              className="px-4 py-2 bg-red-500/90 text-white text-sm rounded-xl hover:bg-red-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
             >
               Clear All Data
             </button>
@@ -657,19 +649,6 @@ const WardrobeOrganizer = () => {
               <span className="text-indigo-400 mt-0.5">•</span>
               <span>All changes are automatically saved to your browser</span>
             </li>
-        <div className="mt-4 text-sm text-gray-600">
-          <p><strong>Tips:</strong></p>
-          <ul className="list-disc list-inside mt-2 space-y-1">
-            <li>Click any item to edit it individually</li>
-            <li>Use the up/down arrows to reorder items within each cell</li>
-            <li>Click the shopping cart icon to mark items you want to buy</li>
-            <li>Click "View Wishlist" to see all wishlist items and add purchase links</li>
-            <li>In the Brands column, click the link icon to add website URLs</li>
-            <li>Brand names with URLs become clickable links</li>
-            <li>Hover over items and click the X to delete them</li>
-            <li>Use "Add item" to add new clothing items to each category</li>
-            <li>Click category names to rename them</li>
-            <li>All changes are automatically saved to your browser</li>
           </ul>
         </div>
 
