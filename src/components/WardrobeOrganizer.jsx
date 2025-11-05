@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart } from 'lucide-react';
 
 const WardrobeOrganizer = () => {
   // Load initial data from storage or use defaults
@@ -80,6 +80,9 @@ const WardrobeOrganizer = () => {
 
   const [brandUrls, setBrandUrls] = useState(() => loadFromStorage('wardrobe_brand_urls', {}));
 
+  const [wishlistUrls, setWishlistUrls] = useState(() => loadFromStorage('wardrobe_wishlist_urls', {}));
+
+  const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingBrandUrl, setEditingBrandUrl] = useState(null);
@@ -127,6 +130,14 @@ const WardrobeOrganizer = () => {
       console.error('Error saving brand URLs:', error);
     }
   }, [brandUrls]);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('wardrobe_wishlist_urls', JSON.stringify(wishlistUrls));
+    } catch (error) {
+      console.error('Error saving wishlist URLs:', error);
+    }
+  }, [wishlistUrls]);
 
   const toggleWishlist = (categoryId, column, itemIndex) => {
     const key = `${categoryId}-${column}-${itemIndex}`;
@@ -291,6 +302,7 @@ const WardrobeOrganizer = () => {
       localStorage.removeItem('wardrobe_data');
       localStorage.removeItem('wardrobe_wishlist');
       localStorage.removeItem('wardrobe_brand_urls');
+      localStorage.removeItem('wardrobe_wishlist_urls');
       window.location.reload();
     }
   };
@@ -311,17 +323,58 @@ const WardrobeOrganizer = () => {
     setEditingBrandUrl(null);
   };
 
+  const updateWishlistUrl = (key, url) => {
+    let finalUrl = url.trim();
+
+    // Add https:// if no protocol specified
+    if (finalUrl && !finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      finalUrl = 'https://' + finalUrl;
+    }
+
+    setWishlistUrls(prev => ({
+      ...prev,
+      [key]: finalUrl
+    }));
+  };
+
+  const getWishlistItems = () => {
+    const items = [];
+    Array.from(wishlist).forEach(key => {
+      const [categoryId, column, itemIndex] = key.split('-');
+      const category = categories.find(c => c.id === parseInt(categoryId));
+      if (category && wardrobeData[categoryId]?.[column]?.[itemIndex]) {
+        items.push({
+          key,
+          categoryName: category.name,
+          columnName: columnNames[column],
+          itemName: wardrobeData[categoryId][column][itemIndex],
+          url: wishlistUrls[key] || ''
+        });
+      }
+    });
+    return items;
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-full mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800">My Wardrobe</h1>
-          <button
-            onClick={clearAllData}
-            className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
-          >
-            Clear All Data
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowWishlistModal(true)}
+              className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 flex items-center gap-2"
+            >
+              <Heart size={18} />
+              View Wishlist ({wishlist.size})
+            </button>
+            <button
+              onClick={clearAllData}
+              className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
+            >
+              Clear All Data
+            </button>
+          </div>
         </div>
 
         <div className="mb-4 flex gap-2">
@@ -534,6 +587,7 @@ const WardrobeOrganizer = () => {
             <li>Click any item to edit it individually</li>
             <li>Use the up/down arrows to reorder items within each cell</li>
             <li>Click the shopping cart icon to mark items you want to buy</li>
+            <li>Click "View Wishlist" to see all wishlist items and add purchase links</li>
             <li>In the Brands column, click the link icon to add website URLs</li>
             <li>Brand names with URLs become clickable links</li>
             <li>Hover over items and click the X to delete them</li>
@@ -542,6 +596,99 @@ const WardrobeOrganizer = () => {
             <li>All changes are automatically saved to your browser</li>
           </ul>
         </div>
+
+        {/* Wishlist Modal */}
+        {showWishlistModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <Heart className="fill-green-500 text-green-500" size={24} />
+                  My Wishlist
+                </h2>
+                <button
+                  onClick={() => setShowWishlistModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1">
+                {getWishlistItems().length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <ShoppingCart size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg">Your wishlist is empty</p>
+                    <p className="text-sm mt-2">Click the shopping cart icon on items to add them to your wishlist</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {getWishlistItems().map((item) => (
+                      <div key={item.key} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-semibold text-gray-800">{item.itemName}</span>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">{item.categoryName}</span>
+                              <span className="mx-2">•</span>
+                              <span>{item.columnName}</span>
+                            </div>
+                            <div className="mt-3">
+                              <input
+                                type="text"
+                                value={item.url}
+                                onChange={(e) => updateWishlistUrl(item.key, e.target.value)}
+                                placeholder="Add purchase link (e.g., https://store.com/product)..."
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 items-start">
+                            {item.url && (
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 flex items-center gap-1"
+                              >
+                                <ExternalLink size={14} />
+                                Visit
+                              </a>
+                            )}
+                            <button
+                              onClick={() => {
+                                const [categoryId, column, itemIndex] = item.key.split('-');
+                                toggleWishlist(parseInt(categoryId), column, parseInt(itemIndex));
+                              }}
+                              className="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 flex items-center gap-1"
+                              title="Remove from wishlist"
+                            >
+                              <X size={14} />
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-gray-200 bg-gray-50">
+                <p className="text-sm text-gray-600">
+                  <strong>Total items:</strong> {getWishlistItems().length}
+                  {getWishlistItems().filter(i => i.url).length > 0 && (
+                    <span className="ml-4">
+                      <strong>With links:</strong> {getWishlistItems().filter(i => i.url).length}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
