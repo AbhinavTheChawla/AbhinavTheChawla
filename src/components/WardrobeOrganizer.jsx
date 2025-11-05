@@ -657,19 +657,6 @@ const WardrobeOrganizer = () => {
               <span className="text-indigo-400 mt-0.5">•</span>
               <span>All changes are automatically saved to your browser</span>
             </li>
-        <div className="mt-4 text-sm text-gray-600">
-          <p><strong>Tips:</strong></p>
-          <ul className="list-disc list-inside mt-2 space-y-1">
-            <li>Click any item to edit it individually</li>
-            <li>Use the up/down arrows to reorder items within each cell</li>
-            <li>Click the shopping cart icon to mark items you want to buy</li>
-            <li>Click "View Wishlist" to see all wishlist items and add purchase links</li>
-            <li>In the Brands column, click the link icon to add website URLs</li>
-            <li>Brand names with URLs become clickable links</li>
-            <li>Hover over items and click the X to delete them</li>
-            <li>Use "Add item" to add new clothing items to each category</li>
-            <li>Click category names to rename them</li>
-            <li>All changes are automatically saved to your browser</li>
           </ul>
         </div>
 
