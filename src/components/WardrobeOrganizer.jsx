@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
+import Blueprint from './Blueprint';
 
 const WardrobeOrganizer = () => {
   // Load initial data from storage or use defaults
@@ -416,6 +417,16 @@ const WardrobeOrganizer = () => {
           >
             Grooming Journal
           </button>
+          <button
+            onClick={() => setActiveTab('blueprint')}
+            className={`px-6 py-3 font-semibold text-sm transition-all duration-200 border-b-2 ${
+              activeTab === 'blueprint'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Blueprint
+          </button>
         </div>
 
         {/* Wardrobe Tab Content */}
@@ -781,6 +792,11 @@ const WardrobeOrganizer = () => {
         {/* Grooming Journal Tab Content */}
         {activeTab === 'grooming' && (
           <GroomingJournal />
+        )}
+
+        {/* Blueprint Tab Content */}
+        {activeTab === 'blueprint' && (
+          <Blueprint />
         )}
       </div>
     </div>
