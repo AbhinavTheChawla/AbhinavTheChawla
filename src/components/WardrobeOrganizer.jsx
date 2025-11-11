@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart } from 'lucide-react';
+import GroomingJournal from './GroomingJournal';
 
 const WardrobeOrganizer = () => {
   // Load initial data from storage or use defaults
@@ -82,6 +83,7 @@ const WardrobeOrganizer = () => {
 
   const [wishlistUrls, setWishlistUrls] = useState(() => loadFromStorage('wardrobe_wishlist_urls', {}));
 
+  const [activeTab, setActiveTab] = useState('wardrobe');
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -359,21 +361,14 @@ const WardrobeOrganizer = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-full mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              My Wardrobe
+              My Personal Organizer
             </h1>
-            <p className="text-slate-500 mt-1 text-sm">Organize and manage your clothing collection</p>
+            <p className="text-slate-500 mt-1 text-sm">Manage your wardrobe and grooming routine</p>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowWishlistModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 font-medium"
-            >
-              <Heart size={18} />
-              View Wishlist ({wishlist.size})
-            </button>
             <button
               onClick={clearAllData}
               className="px-4 py-2 bg-red-500/90 text-white text-sm rounded-xl hover:bg-red-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
@@ -383,24 +378,67 @@ const WardrobeOrganizer = () => {
           </div>
         </div>
 
-        {/* Add Category Section */}
-        <div className="mb-6 flex gap-3">
-          <input
-            type="text"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && addCategory()}
-            placeholder="New category name..."
-            className="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm transition-all duration-200"
-          />
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-6 border-b border-slate-200">
           <button
-            onClick={addCategory}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md font-medium"
+            onClick={() => setActiveTab('wardrobe')}
+            className={`px-6 py-3 font-semibold text-sm transition-all duration-200 border-b-2 ${
+              activeTab === 'wardrobe'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
           >
-            <Plus size={20} />
-            Add Category
+            Wardrobe
+          </button>
+          <button
+            onClick={() => setActiveTab('wishlist')}
+            className={`px-6 py-3 font-semibold text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
+              activeTab === 'wishlist'
+                ? 'border-emerald-600 text-emerald-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            <Heart size={16} className={activeTab === 'wishlist' ? 'fill-emerald-600' : ''} />
+            Wishlist
+            {wishlist.size > 0 && (
+              <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                {wishlist.size}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('grooming')}
+            className={`px-6 py-3 font-semibold text-sm transition-all duration-200 border-b-2 ${
+              activeTab === 'grooming'
+                ? 'border-purple-600 text-purple-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Grooming Journal
           </button>
         </div>
+
+        {/* Wardrobe Tab Content */}
+        {activeTab === 'wardrobe' && (
+          <>
+            {/* Add Category Section */}
+            <div className="mb-6 flex gap-3">
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && addCategory()}
+                placeholder="New category name..."
+                className="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm transition-all duration-200"
+              />
+              <button
+                onClick={addCategory}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md font-medium"
+              >
+                <Plus size={20} />
+                Add Category
+              </button>
+            </div>
 
         {/* Main Table */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-slate-200">
@@ -607,142 +645,142 @@ const WardrobeOrganizer = () => {
           </div>
         </div>
 
-        {/* Tips Section */}
-        <div className="mt-6 bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-slate-200">
-          <p className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-            <span className="text-indigo-600">✨</span> Quick Tips
-          </p>
-          <ul className="space-y-2 text-sm text-slate-600">
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>Click any item to edit it individually</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>Use the up/down arrows to reorder items within each cell</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>Click the shopping cart icon to mark items you want to buy</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>In the Brands column, click the link icon to add website URLs</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>Brand names with URLs become clickable links</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>Hover over items and click the X to delete them</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>Use "Add item" to add new clothing items to each category</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>Click category names to rename them</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-indigo-400 mt-0.5">•</span>
-              <span>All changes are automatically saved to your browser</span>
-            </li>
-          </ul>
-        </div>
+            {/* Tips Section */}
+            <div className="mt-6 bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-slate-200">
+              <p className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                <span className="text-indigo-600">✨</span> Quick Tips
+              </p>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>Click any item to edit it individually</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>Use the up/down arrows to reorder items within each cell</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>Click the shopping cart icon to mark items you want to buy</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>In the Brands column, click the link icon to add website URLs</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>Brand names with URLs become clickable links</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>Hover over items and click the X to delete them</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>Use "Add item" to add new clothing items to each category</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>Click category names to rename them</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400 mt-0.5">•</span>
+                  <span>All changes are automatically saved to your browser</span>
+                </li>
+              </ul>
+            </div>
+          </>
+        )}
 
-        {/* Wishlist Modal */}
-        {showWishlistModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <Heart className="fill-green-500 text-green-500" size={24} />
-                  My Wishlist
-                </h2>
-                <button
-                  onClick={() => setShowWishlistModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X size={24} />
-                </button>
+        {/* Wishlist Tab Content */}
+        {activeTab === 'wishlist' && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-slate-200 p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Heart className="fill-emerald-500 text-emerald-500" size={24} />
+                My Wishlist
+              </h2>
+              <p className="text-slate-500 mt-1 text-sm">Items you want to purchase</p>
+            </div>
+
+            {getWishlistItems().length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <ShoppingCart size={48} className="mx-auto mb-4 text-gray-300" />
+                <p className="text-lg">Your wishlist is empty</p>
+                <p className="text-sm mt-2">Click the shopping cart icon on items in the Wardrobe tab to add them to your wishlist</p>
               </div>
-
-              <div className="p-6 overflow-y-auto flex-1">
-                {getWishlistItems().length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <ShoppingCart size={48} className="mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg">Your wishlist is empty</p>
-                    <p className="text-sm mt-2">Click the shopping cart icon on items to add them to your wishlist</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {getWishlistItems().map((item) => (
-                      <div key={item.key} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-semibold text-gray-800">{item.itemName}</span>
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              <span className="font-medium">{item.categoryName}</span>
-                              <span className="mx-2">•</span>
-                              <span>{item.columnName}</span>
-                            </div>
-                            <div className="mt-3">
-                              <input
-                                type="text"
-                                value={item.url}
-                                onChange={(e) => updateWishlistUrl(item.key, e.target.value)}
-                                placeholder="Add purchase link (e.g., https://store.com/product)..."
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                              />
-                            </div>
+            ) : (
+              <>
+                <div className="space-y-4 mb-6">
+                  {getWishlistItems().map((item) => (
+                    <div key={item.key} className="bg-slate-50 rounded-lg p-4 hover:bg-slate-100 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-gray-800">{item.itemName}</span>
                           </div>
-                          <div className="flex gap-2 items-start">
-                            {item.url && (
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 flex items-center gap-1"
-                              >
-                                <ExternalLink size={14} />
-                                Visit
-                              </a>
-                            )}
-                            <button
-                              onClick={() => {
-                                const [categoryId, column, itemIndex] = item.key.split('-');
-                                toggleWishlist(parseInt(categoryId), column, parseInt(itemIndex));
-                              }}
-                              className="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 flex items-center gap-1"
-                              title="Remove from wishlist"
-                            >
-                              <X size={14} />
-                              Remove
-                            </button>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">{item.categoryName}</span>
+                            <span className="mx-2">•</span>
+                            <span>{item.columnName}</span>
+                          </div>
+                          <div className="mt-3">
+                            <input
+                              type="text"
+                              value={item.url}
+                              onChange={(e) => updateWishlistUrl(item.key, e.target.value)}
+                              placeholder="Add purchase link (e.g., https://store.com/product)..."
+                              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
                           </div>
                         </div>
+                        <div className="flex gap-2 items-start">
+                          {item.url && (
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 flex items-center gap-1 transition-all duration-200"
+                            >
+                              <ExternalLink size={14} />
+                              Visit
+                            </a>
+                          )}
+                          <button
+                            onClick={() => {
+                              const [categoryId, column, itemIndex] = item.key.split('-');
+                              toggleWishlist(parseInt(categoryId), column, parseInt(itemIndex));
+                            }}
+                            className="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 flex items-center gap-1 transition-all duration-200"
+                            title="Remove from wishlist"
+                          >
+                            <X size={14} />
+                            Remove
+                          </button>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
 
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
-                <p className="text-sm text-gray-600">
-                  <strong>Total items:</strong> {getWishlistItems().length}
-                  {getWishlistItems().filter(i => i.url).length > 0 && (
-                    <span className="ml-4">
-                      <strong>With links:</strong> {getWishlistItems().filter(i => i.url).length}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
+                <div className="p-4 border-t border-slate-200 bg-slate-50 rounded-lg">
+                  <p className="text-sm text-slate-600">
+                    <strong>Total items:</strong> {getWishlistItems().length}
+                    {getWishlistItems().filter(i => i.url).length > 0 && (
+                      <span className="ml-4">
+                        <strong>With links:</strong> {getWishlistItems().filter(i => i.url).length}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
+        )}
+
+        {/* Grooming Journal Tab Content */}
+        {activeTab === 'grooming' && (
+          <GroomingJournal />
         )}
       </div>
     </div>
