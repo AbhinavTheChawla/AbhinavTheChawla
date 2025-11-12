@@ -6,9 +6,10 @@ import { callClaude } from './claudeAPI';
  *
  * @param {string} userQuery - The user's question or request
  * @param {Object} context - Full app context from store.getAllData()
+ * @param {string} apiKey - Claude API key
  * @returns {Promise<string>} - Agent's response
  */
-export const lifePlanningAgent = async (userQuery, context) => {
+export const lifePlanningAgent = async (userQuery, context, apiKey) => {
   try {
     // Extract relevant data
     const { blueprint } = context;
@@ -74,7 +75,7 @@ Provide your life planning advice:`;
       }
     ];
 
-    const response = await callClaude(messages, 1500);
+    const response = await callClaude(messages, 1500, apiKey);
     return response;
   } catch (error) {
     console.error('Error in lifePlanningAgent:', error);

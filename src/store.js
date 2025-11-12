@@ -133,6 +133,9 @@ const useStore = create((set, get) => ({
     ]
   }),
 
+  // AI Settings
+  claudeApiKey: loadFromStorage('claude_api_key', ''),
+
   // Blueprint State
   blueprintData: loadFromStorage('blueprintData', {
     lifeNow: {
@@ -214,6 +217,12 @@ const useStore = create((set, get) => ({
   updateBlueprint: (blueprintData) => {
     set({ blueprintData });
     saveToStorage('blueprintData', blueprintData);
+  },
+
+  // Actions for AI Settings
+  updateClaudeApiKey: (apiKey) => {
+    set({ claudeApiKey: apiKey });
+    saveToStorage('claude_api_key', apiKey);
   },
 
   // Get all data for AI context

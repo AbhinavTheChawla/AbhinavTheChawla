@@ -10,16 +10,22 @@ const ANTHROPIC_VERSION = '2023-06-01';
  * Call Claude API with messages
  * @param {Array} messages - Array of message objects with role and content
  * @param {number} maxTokens - Maximum tokens for response (default 1000)
+ * @param {string} apiKey - Claude API key
  * @returns {Promise<string>} - Claude's text response
  */
-export const callClaude = async (messages, maxTokens = 1000) => {
+export const callClaude = async (messages, maxTokens = 1000, apiKey = '') => {
+  // Check if API key is provided
+  if (!apiKey || apiKey.trim() === '') {
+    throw new Error('API key is required. Please configure your Claude API key in the settings.');
+  }
+
   try {
     const response = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'anthropic-version': ANTHROPIC_VERSION,
-        'x-api-key': '', // No API key needed in artifacts as per user requirements
+        'x-api-key': apiKey,
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
