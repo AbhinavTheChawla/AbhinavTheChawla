@@ -138,7 +138,7 @@ const Blueprint = () => {
         type="text"
         value={data[section][field]}
         onChange={(e) => updateField(section, field, e.target.value)}
-        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-slate-300 transition-all"
+        className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-slate-300 transition-all"
         placeholder={placeholder}
       />
     );
@@ -150,18 +150,18 @@ const Blueprint = () => {
     return (
       <div className="space-y-2">
         {items.map((item, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <span className="text-slate-400">•</span>
+          <div key={index} className="flex items-center gap-1 sm:gap-2">
+            <span className="text-slate-400 text-xs sm:text-sm">•</span>
             <input
               type="text"
               value={item}
               onChange={(e) => updateArrayItem(section, field, index, e.target.value)}
-              className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-slate-300 transition-all"
+              className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-slate-300 transition-all"
               placeholder={`Enter ${title.toLowerCase()}...`}
             />
             <button
               onClick={() => deleteArrayItem(section, field, index)}
-              className="text-red-400 hover:text-red-600 transition-colors px-2"
+              className="text-red-400 hover:text-red-600 transition-colors px-1 sm:px-2 text-sm"
               title="Delete item"
             >
               ✕
@@ -170,7 +170,7 @@ const Blueprint = () => {
         ))}
         <button
           onClick={() => addArrayItem(section, field)}
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 mt-2 transition-colors"
+          className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 mt-2 transition-colors"
         >
           + Add {title}
         </button>
@@ -179,20 +179,20 @@ const Blueprint = () => {
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200 p-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-800">Life Blueprint</h2>
-        <p className="text-slate-500 mt-1 text-sm">Click any field to edit • Changes save automatically</p>
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200 p-4 sm:p-6 md:p-8">
+      <div className="mb-4 sm:mb-6 md:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Life Blueprint</h2>
+        <p className="text-slate-500 mt-1 text-xs sm:text-sm">Click any field to edit • Changes save automatically</p>
       </div>
 
       {/* Life RN Section */}
-      <div className="mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-        <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+      <div className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-blue-100">
+        <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-3 sm:mb-4 flex items-center gap-2">
           <span>🎯</span>
           Life RN
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Training</label>
             {renderEditableField('lifeNow', 'training', 'Enter training routine...')}
@@ -207,26 +207,26 @@ const Blueprint = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white/60 rounded-lg p-4">
-            <label className="block text-xs font-semibold text-slate-600 mb-3 uppercase tracking-wide">Daily Practices</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="bg-white/60 rounded-lg p-3 sm:p-4">
+            <label className="block text-xs font-semibold text-slate-600 mb-2 sm:mb-3 uppercase tracking-wide">Daily Practices</label>
             {renderEditableList('lifeNow', 'practices', 'Practice')}
           </div>
-          <div className="bg-white/60 rounded-lg p-4">
-            <label className="block text-xs font-semibold text-slate-600 mb-3 uppercase tracking-wide">Daily Goals</label>
+          <div className="bg-white/60 rounded-lg p-3 sm:p-4">
+            <label className="block text-xs font-semibold text-slate-600 mb-2 sm:mb-3 uppercase tracking-wide">Daily Goals</label>
             {renderEditableList('lifeNow', 'dailyGoals', 'Goal')}
           </div>
         </div>
       </div>
 
       {/* Life Next Year Section */}
-      <div className="mb-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-100">
-        <h3 className="text-xl font-bold text-emerald-900 mb-4 flex items-center gap-2">
+      <div className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-emerald-100">
+        <h3 className="text-lg sm:text-xl font-bold text-emerald-900 mb-3 sm:mb-4 flex items-center gap-2">
           <span>🚀</span>
           Life Next Year
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Career</label>
             {renderEditableField('lifeNextYear', 'career', 'Enter career goals...')}
@@ -251,8 +251,8 @@ const Blueprint = () => {
       </div>
 
       {/* Side Hustles Section */}
-      <div className="mb-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-100">
-        <h3 className="text-xl font-bold text-amber-900 mb-4 flex items-center gap-2">
+      <div className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-amber-100">
+        <h3 className="text-lg sm:text-xl font-bold text-amber-900 mb-3 sm:mb-4 flex items-center gap-2">
           <span>💼</span>
           Side Hustles
         </h3>
@@ -260,13 +260,13 @@ const Blueprint = () => {
       </div>
 
       {/* Social Media Section */}
-      <div className="mb-8 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-        <h3 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">
+      <div className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-purple-100">
+        <h3 className="text-lg sm:text-xl font-bold text-purple-900 mb-3 sm:mb-4 flex items-center gap-2">
           <span>📱</span>
           Social Media Strategy
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">X (Twitter)</label>
             {renderEditableField('socialMedia', 'x', 'Enter X strategy...')}
@@ -299,13 +299,13 @@ const Blueprint = () => {
       </div>
 
       {/* Substances Section */}
-      <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-6 border border-slate-200">
-        <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-slate-200">
+        <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-3 sm:mb-4 flex items-center gap-2">
           <span>⚗️</span>
           Substances
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Psychedelics</label>
             {renderEditableField('substances', 'psychedelics', 'Enter psychedelics usage...')}
