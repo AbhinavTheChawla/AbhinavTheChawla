@@ -13,6 +13,8 @@ const AgentOrchestrator = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [testStatus, setTestStatus] = useState(''); // 'testing', 'success', 'error'
+  const [testMessage, setTestMessage] = useState('');
   const messagesEndRef = useRef(null);
 
   // Get full context and API key from store
@@ -42,7 +44,72 @@ const AgentOrchestrator = () => {
 
   const handleCancelApiKey = () => {
     setTempApiKey(claudeApiKey);
+    setTestStatus('');
+    setTestMessage('');
     setShowSettings(false);
+  };
+
+  const handleTestConnection = async () => {
+    setTestStatus('testing');
+    setTestMessage('Testing connection...');
+
+    try {
+      // Step 1: Test proxy server
+      console.log('🧪 Testing proxy server health...');
+      const proxyUrl = 'http://localhost:3001';
+
+      try {
+        const healthResponse = await fetch(`${proxyUrl}/health`, {
+          method: 'GET',
+        });
+
+        if (!healthResponse.ok) {
+          throw new Error('Proxy server health check failed');
+        }
+
+        console.log('✅ Proxy server is running');
+      } catch (healthError) {
+        console.error('❌ Proxy server is not accessible:', healthError);
+        setTestStatus('error');
+        setTestMessage('❌ Proxy server not running! Please ensure you started the app with "npm run dev" (not "npm run client").');
+        return;
+      }
+
+      // Step 2: Test API key
+      if (!tempApiKey || tempApiKey.trim() === '') {
+        setTestStatus('error');
+        setTestMessage('❌ Please enter an API key first');
+        return;
+      }
+
+      if (!tempApiKey.startsWith('sk-ant-')) {
+        setTestStatus('error');
+        setTestMessage('❌ Invalid API key format. Key should start with "sk-ant-"');
+        return;
+      }
+
+      console.log('🧪 Testing Claude API with your key...');
+
+      // Step 3: Test actual API call
+      const testMessages = [{ role: 'user', content: 'Say "test successful" if you can read this.' }];
+      const response = await callClaude(testMessages, 100, tempApiKey);
+
+      console.log('✅ API test successful');
+      setTestStatus('success');
+      setTestMessage('✅ Connection successful! Your API key is working correctly.');
+
+    } catch (error) {
+      console.error('❌ Test failed:', error);
+      setTestStatus('error');
+
+      if (error.message.includes('Cannot connect to proxy server')) {
+        setTestMessage('❌ Cannot connect to proxy server. Start the app with "npm run dev"');
+      } else if (error.message.includes('API key')) {
+        setTestMessage(`❌ API Key Error: ${error.message}`);
+      } else {
+        setTestMessage(`❌ Test failed: ${error.message}`);
+      }
+    }
   };
 
   /**
@@ -282,6 +349,37 @@ Provide your synthesized response:`;
               <p className="text-xs text-blue-800">
                 <strong>Note:</strong> Your API key is stored locally in your browser and never sent to any server except Anthropic's API.
               </p>
+            </div>
+
+            {/* Test Connection Button */}
+            <div className="mb-4">
+              <button
+                onClick={handleTestConnection}
+                disabled={testStatus === 'testing'}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {testStatus === 'testing' ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    Testing...
+                  </>
+                ) : (
+                  'Test Connection'
+                )}
+              </button>
+
+              {/* Test Result Message */}
+              {testMessage && (
+                <div className={`mt-3 p-3 rounded-lg text-sm ${
+                  testStatus === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : testStatus === 'error'
+                    ? 'bg-red-50 border border-red-200 text-red-800'
+                    : 'bg-gray-50 border border-gray-200 text-gray-800'
+                }`}>
+                  {testMessage}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
