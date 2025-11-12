@@ -363,21 +363,11 @@ const WardrobeOrganizer = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-2 sm:p-4 md:p-6">
       <div className="max-w-full mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
-          <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              My Personal Organizer
-            </h1>
-            <p className="text-slate-500 mt-1 text-xs sm:text-sm">Manage your wardrobe and grooming routine</p>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button
-              onClick={clearAllData}
-              className="px-3 sm:px-4 py-2 bg-red-500/90 text-white text-xs sm:text-sm rounded-xl hover:bg-red-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex-1 sm:flex-none whitespace-nowrap"
-            >
-              Clear All Data
-            </button>
-          </div>
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            My Personal Organizer
+          </h1>
+          <p className="text-slate-500 mt-1 text-xs sm:text-sm">Manage your wardrobe and grooming routine</p>
         </div>
 
         {/* Tab Navigation */}
