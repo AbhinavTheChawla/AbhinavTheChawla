@@ -1,135 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import useStore from '../store';
 
 const Blueprint = () => {
-  // Load initial data from storage or use defaults
-  const loadFromStorage = (key, defaultValue) => {
-    try {
-      const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : defaultValue;
-    } catch (error) {
-      console.error('Error loading from storage:', error);
-      return defaultValue;
-    }
-  };
-
-  const [data, setData] = useState(() => loadFromStorage('blueprintData', {
-    lifeNow: {
-      training: 'gym + cardio + diet',
-      reading: 'sidequests',
-      sports: 'tennis, golf',
-      practices: [
-        'Morning frame check and intention setting',
-        'Awareness throughout the day',
-        'Evening reflection'
-      ],
-      dailyGoals: [
-        '20min meditation/discomfort sit',
-        'approval seeking detection log',
-        'one hard thing over optimal by by by'
-      ]
-    },
-    lifeNextYear: {
-      career: 'UBS + marketwatch/writeups',
-      reading: 'fintwit, substack, books, news',
-      training: 'Training',
-      activities: 'Poker/Tennis/Golf',
-      travel: 'skiing/surfing'
-    },
-    sideHustles: [
-      'early career coaching',
-      'search fund'
-    ],
-    socialMedia: {
-      x: 'FinTwit',
-      tiktok: 'inspo',
-      reddit: 'community forums',
-      ig: 'stories/reels',
-      whatsapp: 'millenial texting',
-      messenger: 'gen Z texting',
-      linkedin: 'engaging with network'
-    },
-    substances: {
-      psychedelics: 'festivals/adventures',
-      caffeine: 'Sustained 4hr energy',
-      pouches: 'Quick 2hr energy',
-      ketamine: 'kill head noise'
-    }
-  }));
-
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('blueprintData', JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving blueprint data:', error);
-    }
-  }, [data]);
+  // Get state and actions from Zustand store
+  const data = useStore((state) => state.blueprintData);
+  const updateBlueprint = useStore((state) => state.updateBlueprint);
 
   const updateField = (section, field, value) => {
-    setData(prev => ({
-      ...prev,
+    const newData = {
+      ...data,
       [section]: {
-        ...prev[section],
+        ...data[section],
         [field]: value
       }
-    }));
+    };
+    updateBlueprint(newData);
   };
 
   const updateArrayItem = (section, field, index, value) => {
+    let newData;
     if (field) {
       // For nested arrays like lifeNow.practices
-      setData(prev => ({
-        ...prev,
+      newData = {
+        ...data,
         [section]: {
-          ...prev[section],
-          [field]: prev[section][field].map((item, i) => i === index ? value : item)
+          ...data[section],
+          [field]: data[section][field].map((item, i) => i === index ? value : item)
         }
-      }));
+      };
     } else {
       // For top-level arrays like sideHustles
-      setData(prev => ({
-        ...prev,
-        [section]: prev[section].map((item, i) => i === index ? value : item)
-      }));
+      newData = {
+        ...data,
+        [section]: data[section].map((item, i) => i === index ? value : item)
+      };
     }
+    updateBlueprint(newData);
   };
 
   const addArrayItem = (section, field) => {
+    let newData;
     if (field) {
       // For nested arrays
-      setData(prev => ({
-        ...prev,
+      newData = {
+        ...data,
         [section]: {
-          ...prev[section],
-          [field]: [...prev[section][field], '']
+          ...data[section],
+          [field]: [...data[section][field], '']
         }
-      }));
+      };
     } else {
       // For top-level arrays
-      setData(prev => ({
-        ...prev,
-        [section]: [...prev[section], '']
-      }));
+      newData = {
+        ...data,
+        [section]: [...data[section], '']
+      };
     }
+    updateBlueprint(newData);
   };
 
   const deleteArrayItem = (section, field, index) => {
+    let newData;
     if (field) {
       // For nested arrays
-      setData(prev => ({
-        ...prev,
+      newData = {
+        ...data,
         [section]: {
-          ...prev[section],
-          [field]: prev[section][field].filter((_, i) => i !== index)
+          ...data[section],
+          [field]: data[section][field].filter((_, i) => i !== index)
         }
-      }));
+      };
     } else {
       // For top-level arrays
-      setData(prev => ({
-        ...prev,
-        [section]: prev[section].filter((_, i) => i !== index)
-      }));
+      newData = {
+        ...data,
+        [section]: data[section].filter((_, i) => i !== index)
+      };
     }
+    updateBlueprint(newData);
   };
 
   const renderEditableField = (section, field, placeholder = '') => {
