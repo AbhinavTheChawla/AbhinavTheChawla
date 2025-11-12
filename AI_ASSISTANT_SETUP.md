@@ -46,11 +46,44 @@ vite            # This only starts the frontend!
 4. **Configure your API key**:
    - Click the ⚙️ settings icon in the AI Assistant
    - Enter your Claude API key from https://console.anthropic.com/
-   - Click "Save"
+   - **Click "Test Connection"** to verify everything is working
+   - If the test passes (✅), click "Save"
+   - If the test fails (❌), read the error message for guidance
 
 5. **Test the AI Assistant**:
    - Try asking: "What should I wear today?"
    - You should see logs in your terminal showing the proxy server handling requests
+
+## Using the Test Connection Feature
+
+The AI Assistant now includes a built-in diagnostic tool:
+
+1. **Open Settings** (⚙️ icon)
+2. **Enter your API key**
+3. **Click "Test Connection"**
+
+The test will check:
+- ✅ Is the proxy server running on port 3001?
+- ✅ Is your API key in the correct format?
+- ✅ Can the proxy server reach Claude's API?
+- ✅ Does your API key have valid credits?
+
+**Possible Test Results:**
+
+✅ **Success**: "Connection successful! Your API key is working correctly."
+- Everything is working! Click "Save" and start using the AI Assistant.
+
+❌ **Proxy Not Running**: "Proxy server not running! Please ensure you started the app with 'npm run dev'"
+- You need to restart the app with `npm run dev`
+- Make sure BOTH servers (proxy + frontend) are running
+
+❌ **Invalid API Key**: "Invalid API key format. Key should start with 'sk-ant-'"
+- Check your API key from https://console.anthropic.com/
+- Make sure you copied the entire key
+
+❌ **API Error**: Will show specific error from Claude's API
+- Check if you have credits remaining
+- Verify the API key is active
 
 ## Troubleshooting
 
