@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles, Settings, X, Eye, EyeOff } from 'lucide-react';
 import useStore from '../store';
 import { wardrobeAgent } from './wardrobeAgent';
 import { groomingAgent } from './groomingAgent';
@@ -10,10 +10,22 @@ const AgentOrchestrator = () => {
   const [conversationHistory, setConversationHistory] = useState([]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Get full context from store
+  // Get full context and API key from store
   const getAllData = useStore((state) => state.getAllData);
+  const claudeApiKey = useStore((state) => state.claudeApiKey);
+  const updateClaudeApiKey = useStore((state) => state.updateClaudeApiKey);
+
+  // Initialize temp API key when settings open
+  useEffect(() => {
+    if (showSettings) {
+      setTempApiKey(claudeApiKey);
+    }
+  }, [showSettings, claudeApiKey]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -22,6 +34,16 @@ const AgentOrchestrator = () => {
   useEffect(() => {
     scrollToBottom();
   }, [conversationHistory]);
+
+  const handleSaveApiKey = () => {
+    updateClaudeApiKey(tempApiKey);
+    setShowSettings(false);
+  };
+
+  const handleCancelApiKey = () => {
+    setTempApiKey(claudeApiKey);
+    setShowSettings(false);
+  };
 
   /**
    * Analyze user query to determine which agent(s) to call
@@ -122,22 +144,22 @@ const AgentOrchestrator = () => {
       if (routing.type === 'single') {
         // Single agent call
         if (routing.agent === 'wardrobe') {
-          response = await wardrobeAgent(query, context);
+          response = await wardrobeAgent(query, context, claudeApiKey);
         } else if (routing.agent === 'grooming') {
-          response = await groomingAgent(query, context);
+          response = await groomingAgent(query, context, claudeApiKey);
         } else if (routing.agent === 'lifePlanning') {
-          response = await lifePlanningAgent(query, context);
+          response = await lifePlanningAgent(query, context, claudeApiKey);
         }
       } else {
         // Multi-agent synthesis
         const agentResponses = await Promise.all(
           routing.agents.map(async (agentName) => {
             if (agentName === 'wardrobe') {
-              return { name: 'Wardrobe', response: await wardrobeAgent(query, context) };
+              return { name: 'Wardrobe', response: await wardrobeAgent(query, context, claudeApiKey) };
             } else if (agentName === 'grooming') {
-              return { name: 'Grooming', response: await groomingAgent(query, context) };
+              return { name: 'Grooming', response: await groomingAgent(query, context, claudeApiKey) };
             } else if (agentName === 'lifePlanning') {
-              return { name: 'Life Planning', response: await lifePlanningAgent(query, context) };
+              return { name: 'Life Planning', response: await lifePlanningAgent(query, context, claudeApiKey) };
             }
           })
         );
@@ -166,7 +188,7 @@ Combine these specialist responses into a single, cohesive, well-organized respo
 Provide your synthesized response:`;
 
         const synthesisMessages = [{ role: 'user', content: synthesisPrompt }];
-        response = await callClaude(synthesisMessages, 2000);
+        response = await callClaude(synthesisMessages, 2000, claudeApiKey);
       }
 
       // Add assistant response to conversation
@@ -189,16 +211,96 @@ Provide your synthesized response:`;
     <div className="flex flex-col h-full bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-4 sm:p-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 p-2 rounded-lg">
-            <Sparkles className="text-white" size={24} />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <Sparkles className="text-white" size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">AI Assistant</h2>
+              <p className="text-violet-100 text-xs sm:text-sm">Your personal wardrobe, grooming, and life planning advisor</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">AI Assistant</h2>
-            <p className="text-violet-100 text-xs sm:text-sm">Your personal wardrobe, grooming, and life planning advisor</p>
-          </div>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-all"
+            title="Configure API Key"
+          >
+            <Settings className="text-white" size={20} />
+          </button>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-800">API Settings</h3>
+              <button
+                onClick={handleCancelApiKey}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Claude API Key
+              </label>
+              <p className="text-xs text-slate-500 mb-3">
+                Get your API key from{' '}
+                <a
+                  href="https://console.anthropic.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-violet-600 hover:text-violet-700 underline"
+                >
+                  console.anthropic.com
+                </a>
+              </p>
+              <div className="relative">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={tempApiKey}
+                  onChange={(e) => setTempApiKey(e.target.value)}
+                  placeholder="sk-ant-..."
+                  className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-blue-800">
+                <strong>Note:</strong> Your API key is stored locally in your browser and never sent to any server except Anthropic's API.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancelApiKey}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-all font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveApiKey}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg hover:from-violet-700 hover:to-indigo-700 transition-all font-medium"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4" style={{ maxHeight: 'calc(100vh - 350px)', minHeight: '400px' }}>
@@ -207,6 +309,24 @@ Provide your synthesized response:`;
             <Sparkles size={48} className="mx-auto mb-4 text-slate-300" />
             <p className="text-base sm:text-lg font-medium mb-2">Welcome to your AI Assistant!</p>
             <p className="text-xs sm:text-sm mb-4 px-4">Ask me anything about your wardrobe, grooming routine, or life plans.</p>
+
+            {!claudeApiKey && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 max-w-md mx-auto">
+                <p className="text-sm text-amber-800 mb-2">
+                  <strong>⚠️ API Key Required</strong>
+                </p>
+                <p className="text-xs text-amber-700 mb-3">
+                  Click the settings icon (⚙️) to configure your Claude API key before using the AI assistant.
+                </p>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-all font-medium"
+                >
+                  Configure Now
+                </button>
+              </div>
+            )}
+
             <div className="text-left max-w-md mx-auto space-y-2 text-xs sm:text-sm px-4">
               <p className="font-semibold text-slate-600">Try asking:</p>
               <ul className="space-y-1 text-slate-500">
