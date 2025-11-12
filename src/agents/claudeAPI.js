@@ -1,13 +1,12 @@
 /**
- * Utility for making API calls to Claude
+ * Utility for making API calls to Claude via proxy server
  */
 
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
-const ANTHROPIC_VERSION = '2023-06-01';
+// Use proxy server endpoint (defaults to localhost:3001 in development)
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001/api/claude';
 
 /**
- * Call Claude API with messages
+ * Call Claude API with messages via proxy server
  * @param {Array} messages - Array of message objects with role and content
  * @param {number} maxTokens - Maximum tokens for response (default 1000)
  * @param {string} apiKey - Claude API key
@@ -20,26 +19,22 @@ export const callClaude = async (messages, maxTokens = 1000, apiKey = '') => {
   }
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
+    const response = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'anthropic-version': ANTHROPIC_VERSION,
-        'x-api-key': apiKey,
       },
       body: JSON.stringify({
-        model: CLAUDE_MODEL,
+        messages: messages,
         max_tokens: maxTokens,
-        messages: messages
+        apiKey: apiKey
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        `Claude API error: ${response.status} ${response.statusText}. ${
-          errorData.error?.message || ''
-        }`
+        errorData.error || `Proxy error: ${response.status} ${response.statusText}`
       );
     }
 
