@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Blueprint from './Blueprint';
+import Todo from './Todo';
 
 const WardrobeOrganizer = () => {
   // Load initial data from storage or use defaults
@@ -84,7 +85,7 @@ const WardrobeOrganizer = () => {
 
   const [wishlistUrls, setWishlistUrls] = useState(() => loadFromStorage('wardrobe_wishlist_urls', {}));
 
-  const [activeTab, setActiveTab] = useState('wardrobe');
+  const [activeTab, setActiveTab] = useState('blueprint');
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -382,6 +383,26 @@ const WardrobeOrganizer = () => {
         {/* Tab Navigation */}
         <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-slate-200 overflow-x-auto">
           <button
+            onClick={() => setActiveTab('blueprint')}
+            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
+              activeTab === 'blueprint'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Blueprint
+          </button>
+          <button
+            onClick={() => setActiveTab('todo')}
+            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
+              activeTab === 'todo'
+                ? 'border-amber-600 text-amber-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Todo
+          </button>
+          <button
             onClick={() => setActiveTab('wardrobe')}
             className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
               activeTab === 'wardrobe'
@@ -390,6 +411,17 @@ const WardrobeOrganizer = () => {
             }`}
           >
             Wardrobe
+          </button>
+          <button
+            onClick={() => setActiveTab('grooming')}
+            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
+              activeTab === 'grooming'
+                ? 'border-purple-600 text-purple-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            <span className="hidden sm:inline">Grooming Journal</span>
+            <span className="sm:hidden">Grooming</span>
           </button>
           <button
             onClick={() => setActiveTab('wishlist')}
@@ -407,27 +439,6 @@ const WardrobeOrganizer = () => {
                 {wishlist.size}
               </span>
             )}
-          </button>
-          <button
-            onClick={() => setActiveTab('grooming')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
-              activeTab === 'grooming'
-                ? 'border-purple-600 text-purple-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            <span className="hidden sm:inline">Grooming Journal</span>
-            <span className="sm:hidden">Grooming</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('blueprint')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
-              activeTab === 'blueprint'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Blueprint
           </button>
         </div>
 
@@ -791,14 +802,19 @@ const WardrobeOrganizer = () => {
           </div>
         )}
 
-        {/* Grooming Journal Tab Content */}
-        {activeTab === 'grooming' && (
-          <GroomingJournal />
-        )}
-
         {/* Blueprint Tab Content */}
         {activeTab === 'blueprint' && (
           <Blueprint />
+        )}
+
+        {/* Todo Tab Content */}
+        {activeTab === 'todo' && (
+          <Todo />
+        )}
+
+        {/* Grooming Journal Tab Content */}
+        {activeTab === 'grooming' && (
+          <GroomingJournal />
         )}
       </div>
     </div>
