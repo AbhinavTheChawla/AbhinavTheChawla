@@ -1,96 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Plus, X } from 'lucide-react';
+import useStore from '../store';
 
 const GroomingJournal = () => {
-  // Load initial data from storage or use defaults
-  const loadFromStorage = (key, defaultValue) => {
-    try {
-      const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : defaultValue;
-    } catch (error) {
-      console.error('Error loading from storage:', error);
-      return defaultValue;
-    }
-  };
-
-  const [data, setData] = useState(() => loadFromStorage('groomingData', {
-    am: [
-      ['Gentle Cleanser', 'CeraVe Hydrating Cleanser'],
-      ['Toner', 'Thayers Witch Hazel'],
-      ['Vitamin C Serum', 'The Ordinary Vitamin C 23%'],
-      ['Moisturizer', 'Cetaphil Daily Hydrating Lotion'],
-      ['Sunscreen SPF 50', 'La Roche-Posay Anthelios']
-    ],
-    pm: [
-      ['Oil Cleanser', 'DHC Deep Cleansing Oil'],
-      ['Foaming Cleanser', 'CeraVe Foaming Facial Cleanser'],
-      ['Exfoliant', 'Paula\'s Choice 2% BHA - 2-3x/week'],
-      ['Retinol Serum', 'The Ordinary Retinol 0.5%'],
-      ['Night Cream', 'Neutrogena Hydro Boost Night']
-    ],
-    supplementary: [],
-    perfumes: [
-      ['Daily: Bleu de Chanel', 'Woody aromatic'],
-      ['Evening: Dior Sauvage', 'Fresh spicy'],
-      ['Summer: Acqua di Gio', 'Aquatic citrus']
-    ],
-    supplements: [
-      ['Morning: Multivitamin', 'Garden of Life Men\'s Multi'],
-      ['Morning: Vitamin D3', '5000 IU'],
-      ['Morning: Omega-3', 'Nordic Naturals - 2 caps'],
-      ['Evening: Magnesium', '400mg before bed']
-    ],
-    shaving: [
-      ['Face: Wet Shave', 'Every other day - Safety razor'],
-      ['Body: Trimmer', 'Weekly - Guard #2'],
-      ['Laser: Back & Shoulders', 'Session 4/8 - Next: Nov 15']
-    ],
-    hair: [
-      ['Shampoo', 'Olaplex No. 4 - 2-3x/week'],
-      ['Conditioner', 'Olaplex No. 5'],
-      ['Hair Oil', 'Moroccanoil - 1-2 pumps'],
-      ['Styling', 'Baxter Clay Pomade']
-    ],
-    wishlist: [
-      ['Drunk Elephant C-Firma', '$80', 'High'],
-      ['Le Labo Santal 33', '$285', 'High'],
-      ['Dyson Supersonic', '$430', 'Medium']
-    ]
-  }));
-
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('groomingData', JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving grooming data:', error);
-    }
-  }, [data]);
+  // Get state and actions from Zustand store
+  const data = useStore((state) => state.groomingData);
+  const updateGrooming = useStore((state) => state.updateGrooming);
 
   const updateCell = (category, rowIndex, colIndex, value) => {
-    setData(prev => ({
-      ...prev,
-      [category]: prev[category].map((row, i) =>
+    const newData = {
+      ...data,
+      [category]: data[category].map((row, i) =>
         i === rowIndex
           ? row.map((cell, j) => (j === colIndex ? value : cell))
           : row
       )
-    }));
+    };
+    updateGrooming(newData);
   };
 
   const addRow = (category) => {
     const isWishlist = category === 'wishlist';
-    setData(prev => ({
-      ...prev,
-      [category]: [...prev[category], isWishlist ? ['', '', 'Medium'] : ['', '']]
-    }));
+    const newData = {
+      ...data,
+      [category]: [...data[category], isWishlist ? ['', '', 'Medium'] : ['', '']]
+    };
+    updateGrooming(newData);
   };
 
   const deleteRow = (category, index) => {
-    setData(prev => ({
-      ...prev,
-      [category]: prev[category].filter((_, i) => i !== index)
-    }));
+    const newData = {
+      ...data,
+      [category]: data[category].filter((_, i) => i !== index)
+    };
+    updateGrooming(newData);
   };
 
   const renderTable = (category, title, emoji, hasNumbers = false, isWishlist = false) => {

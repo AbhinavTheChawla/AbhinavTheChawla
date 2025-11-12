@@ -1,7 +1,7 @@
-import WardrobeOrganizer from './components/WardrobeOrganizer'
+import PersonalOrganizer from './components/PersonalOrganizer'
 
 function App() {
-  return <WardrobeOrganizer />
+  return <PersonalOrganizer />
 }
 
 export default App
