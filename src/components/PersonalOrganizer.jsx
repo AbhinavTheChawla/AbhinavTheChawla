@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles, Image as ImageIcon, Cloud, CloudOff, RefreshCw, Settings } from 'lucide-react';
+import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles, Image as ImageIcon, Settings } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Blueprint from './Blueprint';
 import Todo from './Todo';
@@ -25,6 +25,7 @@ const PersonalOrganizer = () => {
   const updateBrandUrls = useStore((state) => state.updateBrandUrls);
   const updateWishlistUrls = useStore((state) => state.updateWishlistUrls);
   const updateImageUrls = useStore((state) => state.updateImageUrls);
+  const reloadFromStorage = useStore((state) => state.reloadFromStorage);
 
   const supabaseUrl = useStore((state) => state.supabaseUrl);
   const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
@@ -39,7 +40,6 @@ const PersonalOrganizer = () => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showSyncSettings, setShowSyncSettings] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Initialize Supabase on mount if credentials exist
   useEffect(() => {
@@ -53,16 +53,16 @@ const PersonalOrganizer = () => {
     const autoDownload = async () => {
       if (supabaseUrl && supabaseAnonKey && userId) {
         try {
-          setSyncStatus('⬇️ Auto-downloading...');
+          setSyncStatus('⬇️ Syncing...');
           const result = await syncService.downloadData(userId);
-          if (result.success && !result.firstSync && result.requiresReload) {
-            setSyncStatus('✅ Data downloaded!');
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          } else if (result.success) {
+          if (result.success && !result.firstSync && result.hasChanges) {
+            // Reload state from localStorage instead of refreshing the page
+            reloadFromStorage();
             setSyncStatus('✅ Synced');
-            setTimeout(() => setSyncStatus(''), 2000);
+            setTimeout(() => setSyncStatus(''), 3000);
+          } else if (result.success) {
+            setSyncStatus('✅ Up to date');
+            setTimeout(() => setSyncStatus(''), 3000);
           }
         } catch (error) {
           console.error('Auto-download failed:', error);
@@ -78,12 +78,18 @@ const PersonalOrganizer = () => {
   useEffect(() => {
     if (!supabaseUrl || !supabaseAnonKey || !userId) return;
 
+    // Show brief upload indicator
+    setSyncStatus('💾 Saving...');
+
     const timeoutId = setTimeout(async () => {
       try {
         await syncService.uploadData(userId);
-        console.log('Auto-uploaded data');
+        setSyncStatus('✅ Saved');
+        setTimeout(() => setSyncStatus(''), 2000);
       } catch (error) {
         console.error('Auto-upload failed:', error);
+        setSyncStatus('❌ Save failed');
+        setTimeout(() => setSyncStatus(''), 3000);
       }
     }, 2000); // Debounce for 2 seconds
 
@@ -312,140 +318,37 @@ const PersonalOrganizer = () => {
     return items;
   };
 
-  const handleUpload = async () => {
-    if (!supabaseUrl || !supabaseAnonKey || !userId) {
-      setSyncStatus('⚠️ Configure sync settings first');
-      setTimeout(() => setSyncStatus(''), 3000);
-      return;
-    }
-
-    setIsSyncing(true);
-    setSyncStatus('⬆️ Uploading...');
-
-    try {
-      await syncService.uploadData(userId);
-      setSyncStatus('✅ Uploaded!');
-      setTimeout(() => setSyncStatus(''), 2000);
-    } catch (error) {
-      setSyncStatus('❌ Upload failed');
-      setTimeout(() => setSyncStatus(''), 3000);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleDownload = async () => {
-    if (!supabaseUrl || !supabaseAnonKey || !userId) {
-      setSyncStatus('⚠️ Configure sync settings first');
-      setTimeout(() => setSyncStatus(''), 3000);
-      return;
-    }
-
-    setIsSyncing(true);
-    setSyncStatus('⬇️ Downloading...');
-
-    try {
-      const result = await syncService.downloadData(userId);
-      if (result.success && !result.firstSync && result.requiresReload) {
-        setSyncStatus('✅ Downloaded! Reloading...');
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else if (result.firstSync) {
-        setSyncStatus('No remote data found');
-        setTimeout(() => setSyncStatus(''), 3000);
-      } else {
-        setSyncStatus('✅ Downloaded!');
-        setTimeout(() => setSyncStatus(''), 2000);
-      }
-    } catch (error) {
-      setSyncStatus('❌ Download failed');
-      setTimeout(() => setSyncStatus(''), 3000);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleFullSync = async () => {
-    if (!supabaseUrl || !supabaseAnonKey || !userId) {
-      setSyncStatus('⚠️ Configure sync settings first');
-      setTimeout(() => setSyncStatus(''), 3000);
-      return;
-    }
-
-    setIsSyncing(true);
-    setSyncStatus('🔄 Syncing...');
-
-    try {
-      const result = await syncService.fullSync(userId);
-      if (result.success && result.requiresReload) {
-        setSyncStatus('✅ Synced! Reloading...');
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        setSyncStatus('✅ Synced!');
-        setTimeout(() => setSyncStatus(''), 2000);
-      }
-    } catch (error) {
-      setSyncStatus('❌ Sync failed');
-      setTimeout(() => setSyncStatus(''), 3000);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-2 sm:p-4 md:p-6">
       <div className="max-w-full mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            {/* Sync Status */}
-            {syncStatus && (
-              <div className="px-3 py-2 bg-slate-100 text-slate-700 text-xs rounded-xl flex items-center justify-center whitespace-nowrap">
+          <div className="flex flex-row gap-2 items-center">
+            {/* Sync Status Indicator */}
+            {syncStatus ? (
+              <div className="px-3 py-2 bg-slate-100 text-slate-700 text-xs rounded-xl flex items-center justify-center whitespace-nowrap shadow-sm">
                 {syncStatus}
               </div>
+            ) : (
+              supabaseUrl && supabaseAnonKey && userId && (
+                <div className="px-3 py-2 bg-green-50 text-green-700 text-xs rounded-xl flex items-center gap-1.5 whitespace-nowrap shadow-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  Auto-sync enabled
+                </div>
+              )
             )}
 
-            {/* Sync Buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleFullSync}
-                disabled={isSyncing}
-                className="px-2 sm:px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-xs rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1 flex-1 sm:flex-none whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Full Sync"
-              >
-                <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-                <span className="hidden sm:inline">Sync</span>
-              </button>
-              <button
-                onClick={handleUpload}
-                disabled={isSyncing}
-                className="px-2 sm:px-3 py-2 bg-blue-500/90 text-white text-xs rounded-xl hover:bg-blue-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1 flex-1 sm:flex-none whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Upload to Cloud"
-              >
-                <Cloud size={14} />
-                <span className="hidden sm:inline">Upload</span>
-              </button>
-              <button
-                onClick={handleDownload}
-                disabled={isSyncing}
-                className="px-2 sm:px-3 py-2 bg-indigo-500/90 text-white text-xs rounded-xl hover:bg-indigo-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1 flex-1 sm:flex-none whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Download from Cloud"
-              >
-                <CloudOff size={14} />
-                <span className="hidden sm:inline">Download</span>
-              </button>
-              <button
-                onClick={() => setShowSyncSettings(true)}
-                className="px-2 sm:px-3 py-2 bg-slate-500/90 text-white text-xs rounded-xl hover:bg-slate-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1 whitespace-nowrap"
-                title="Sync Settings"
-              >
-                <Settings size={14} />
-                <span className="hidden sm:inline">Settings</span>
-              </button>
-            </div>
+            {/* Settings Button */}
+            <button
+              onClick={() => setShowSyncSettings(true)}
+              className="px-3 py-2 bg-slate-500/90 text-white text-xs rounded-xl hover:bg-slate-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1.5 whitespace-nowrap"
+              title="Sync Settings"
+            >
+              <Settings size={14} />
+              <span className="hidden sm:inline">Sync Settings</span>
+              <span className="sm:hidden">Settings</span>
+            </button>
           </div>
         </div>
 
@@ -492,8 +395,7 @@ const PersonalOrganizer = () => {
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
-            <span className="hidden sm:inline">Grooming Journal</span>
-            <span className="sm:hidden">Grooming</span>
+            Grooming
           </button>
           <button
             onClick={() => setActiveTab('ai')}

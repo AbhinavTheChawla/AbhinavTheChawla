@@ -259,6 +259,27 @@ const useStore = create((set, get) => ({
       grooming: state.groomingData,
       blueprint: state.blueprintData
     };
+  },
+
+  // Reload all state from localStorage (useful after sync download)
+  reloadFromStorage: () => {
+    set({
+      categories: loadFromStorage('wardrobe_categories', [
+        { id: 1, name: 'Workwear' },
+        { id: 2, name: 'Smartwear' },
+        { id: 3, name: 'Streetwear' },
+        { id: 4, name: 'Casual Clothes' },
+        { id: 5, name: 'Active Clothes' },
+        { id: 6, name: 'Other' }
+      ]),
+      wardrobeData: loadFromStorage('wardrobe_data', {}),
+      wishlist: new Set(loadFromStorage('wardrobe_wishlist', [])),
+      brandUrls: loadFromStorage('wardrobe_brand_urls', {}),
+      wishlistUrls: loadFromStorage('wardrobe_wishlist_urls', {}),
+      imageUrls: loadFromStorage('wardrobe_image_urls', {}),
+      groomingData: loadFromStorage('groomingData', {}),
+      blueprintData: loadFromStorage('blueprintData', {})
+    });
   }
 }));
 

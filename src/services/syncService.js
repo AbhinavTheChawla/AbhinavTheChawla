@@ -37,6 +37,23 @@ class SyncService {
   }
 
   /**
+   * Helper to update localStorage only if data has changed
+   * Returns true if data was updated, false otherwise
+   */
+  updateLocalStorageIfChanged(key, newValue) {
+    if (!newValue) return false;
+
+    const currentData = localStorage.getItem(key);
+    const newData = JSON.stringify(newValue);
+
+    if (currentData !== newData) {
+      localStorage.setItem(key, newData);
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Upload all local data to Supabase
    */
   async uploadData(userId) {
@@ -121,21 +138,24 @@ class SyncService {
       }
 
       if (data) {
-        // Update localStorage with remote data
-        if (data.wardrobe_categories) localStorage.setItem('wardrobe_categories', JSON.stringify(data.wardrobe_categories));
-        if (data.wardrobe_data) localStorage.setItem('wardrobe_data', JSON.stringify(data.wardrobe_data));
-        if (data.wardrobe_wishlist) localStorage.setItem('wardrobe_wishlist', JSON.stringify(data.wardrobe_wishlist));
-        if (data.wardrobe_brand_urls) localStorage.setItem('wardrobe_brand_urls', JSON.stringify(data.wardrobe_brand_urls));
-        if (data.wardrobe_wishlist_urls) localStorage.setItem('wardrobe_wishlist_urls', JSON.stringify(data.wardrobe_wishlist_urls));
-        if (data.wardrobe_image_urls) localStorage.setItem('wardrobe_image_urls', JSON.stringify(data.wardrobe_image_urls));
-        if (data.grooming_data) localStorage.setItem('groomingData', JSON.stringify(data.grooming_data));
-        if (data.blueprint_data) localStorage.setItem('blueprintData', JSON.stringify(data.blueprint_data));
-        if (data.todo_notes) localStorage.setItem('todo_notes', JSON.stringify(data.todo_notes));
-        if (data.ai_chat_history) localStorage.setItem('ai_chat_history', JSON.stringify(data.ai_chat_history));
+        // Track if any data actually changed
+        let hasChanges = false;
+
+        // Update localStorage with remote data using helper
+        hasChanges = this.updateLocalStorageIfChanged('wardrobe_categories', data.wardrobe_categories) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('wardrobe_data', data.wardrobe_data) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('wardrobe_wishlist', data.wardrobe_wishlist) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('wardrobe_brand_urls', data.wardrobe_brand_urls) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('wardrobe_wishlist_urls', data.wardrobe_wishlist_urls) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('wardrobe_image_urls', data.wardrobe_image_urls) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('groomingData', data.grooming_data) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('blueprintData', data.blueprint_data) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('todo_notes', data.todo_notes) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('ai_chat_history', data.ai_chat_history) || hasChanges;
 
         this.lastSyncTime = new Date();
-        console.log('✅ Data downloaded successfully');
-        return { success: true, requiresReload: true };
+        console.log('✅ Data downloaded successfully', hasChanges ? '(changes detected)' : '(no changes)');
+        return { success: true, hasChanges };
       }
 
       return { success: true };
@@ -161,7 +181,7 @@ class SyncService {
         await this.uploadData(userId);
       }
 
-      return { success: true, requiresReload: downloadResult.requiresReload };
+      return { success: true, hasChanges: downloadResult.hasChanges };
     } catch (error) {
       console.error('❌ Full sync failed:', error);
       throw error;
