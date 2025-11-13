@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cloud, CloudOff, RefreshCw, Settings, X, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, X, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import useStore from '../store';
 import { initializeSupabase } from '../services/supabaseClient';
 import { syncService } from '../services/syncService';
@@ -9,6 +9,7 @@ const SyncSettings = ({ isOpen, onClose }) => {
   const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
   const userId = useStore((state) => state.userId);
   const updateSupabaseSettings = useStore((state) => state.updateSupabaseSettings);
+  const reloadFromStorage = useStore((state) => state.reloadFromStorage);
 
   const [tempUrl, setTempUrl] = useState('');
   const [tempAnonKey, setTempAnonKey] = useState('');
@@ -54,14 +55,14 @@ const SyncSettings = ({ isOpen, onClose }) => {
       const result = await syncService.fullSync(userId);
 
       if (result.success) {
-        setSyncStatus('success');
-        setSyncMessage('✅ Sync completed successfully!');
-
-        if (result.requiresReload) {
-          setSyncMessage('✅ Sync completed! Reloading page to apply changes...');
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
+        if (result.hasChanges) {
+          // Reload state from localStorage instead of refreshing the page
+          reloadFromStorage();
+          setSyncStatus('success');
+          setSyncMessage('✅ Sync completed! Data updated.');
+        } else {
+          setSyncStatus('success');
+          setSyncMessage('✅ Sync completed! Already up to date.');
         }
       }
     } catch (error) {
@@ -113,13 +114,12 @@ const SyncSettings = ({ isOpen, onClose }) => {
         setSyncStatus('success');
         if (result.firstSync) {
           setSyncMessage('No remote data found. Use "Upload" to backup your local data.');
-        } else if (result.requiresReload) {
-          setSyncMessage('✅ Download completed! Reloading page...');
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
+        } else if (result.hasChanges) {
+          // Reload state from localStorage instead of refreshing the page
+          reloadFromStorage();
+          setSyncMessage('✅ Download completed! Data updated.');
         } else {
-          setSyncMessage('✅ Download completed!');
+          setSyncMessage('✅ Download completed! Already up to date.');
         }
       }
     } catch (error) {
