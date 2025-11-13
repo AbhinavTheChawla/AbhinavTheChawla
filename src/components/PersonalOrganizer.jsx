@@ -174,14 +174,13 @@ const PersonalOrganizer = () => {
     };
   }, [supabaseUrl, supabaseAnonKey, userId, reloadFromStorage]);
 
-  const columns = ['over', 'tops', 'bottoms', 'shoes', 'accessories', 'brands'];
+  const columns = ['over', 'tops', 'bottoms', 'shoes', 'accessories'];
   const columnNames = {
     over: 'Over',
     tops: 'Tops',
     bottoms: 'Bottoms',
     shoes: 'Shoes',
-    accessories: 'Accessories',
-    brands: 'Brands'
+    accessories: 'Accessories'
   };
 
   const toggleWishlist = (categoryId, column, itemIndex) => {
@@ -311,7 +310,7 @@ const PersonalOrganizer = () => {
 
       updateWardrobe({
         ...wardrobeData,
-        [newId]: { over: [], tops: [], bottoms: [], shoes: [], accessories: [], brands: [] }
+        [newId]: { over: [], tops: [], bottoms: [], shoes: [], accessories: [] }
       });
 
       setNewCategoryName('');
@@ -446,16 +445,6 @@ const PersonalOrganizer = () => {
             Blueprint
           </button>
           <button
-            onClick={() => setActiveTab('todo')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
-              activeTab === 'todo'
-                ? 'border-amber-600 text-amber-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Todo
-          </button>
-          <button
             onClick={() => setActiveTab('wardrobe')}
             className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
               activeTab === 'wardrobe'
@@ -514,14 +503,14 @@ const PersonalOrganizer = () => {
         {/* Main Table */}
         <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-slate-200">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-max">
+            <table className="w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
-                  <th className="p-1.5 sm:p-3 md:p-5 text-left font-semibold text-xs sm:text-sm">Category</th>
+                  <th className="p-1 sm:p-2 md:p-3 text-left font-semibold text-xs sm:text-sm">Category</th>
                   {columns.map(col => (
-                    <th key={col} className="p-1.5 sm:p-3 md:p-5 text-left font-semibold text-xs sm:text-sm">{columnNames[col]}</th>
+                    <th key={col} className="p-1 sm:p-2 md:p-3 text-left font-semibold text-xs sm:text-sm">{columnNames[col]}</th>
                   ))}
-                  <th className="p-1.5 sm:p-3 md:p-5 text-center font-semibold w-12 sm:w-20 text-xs sm:text-sm">Actions</th>
+                  <th className="p-1 sm:p-2 md:p-3 text-center font-semibold w-12 sm:w-16 text-xs sm:text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -532,7 +521,7 @@ const PersonalOrganizer = () => {
                       idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'
                     }`}
                   >
-                    <td className="p-1.5 sm:p-3 md:p-5">
+                    <td className="p-1 sm:p-2 md:p-3">
                       <div className="flex items-center gap-2">
                         {editingCategory === category.id ? (
                           <input
@@ -548,7 +537,7 @@ const PersonalOrganizer = () => {
                           />
                         ) : (
                           <span
-                            className="font-semibold cursor-pointer text-slate-700 hover:text-indigo-600 transition-colors duration-150 text-xs sm:text-sm"
+                            className="font-semibold cursor-pointer text-slate-700 hover:text-indigo-600 transition-colors duration-150 text-xs sm:text-sm break-words"
                             onClick={() => setEditingCategory(category.id)}
                           >
                             {category.name}
@@ -560,7 +549,7 @@ const PersonalOrganizer = () => {
                       const items = wardrobeData[category.id]?.[col] || [];
 
                       return (
-                        <td key={col} className="p-1.5 sm:p-3 md:p-5">
+                        <td key={col} className="p-1 sm:p-2 md:p-3">
                           <div className="space-y-1.5 sm:space-y-2.5">
                             {items.map((item, itemIndex) => {
                               const itemKey = `${category.id}-${col}-${itemIndex}`;
@@ -656,7 +645,7 @@ const PersonalOrganizer = () => {
                                       ) : (
                                         <span
                                           onClick={() => setEditingItem(itemKey)}
-                                          className="flex-1 text-xs sm:text-sm cursor-pointer hover:bg-indigo-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors duration-150 text-slate-700"
+                                          className="flex-1 text-xs sm:text-sm cursor-pointer hover:bg-indigo-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors duration-150 text-slate-700 break-words"
                                         >
                                           {item || <span className="text-slate-400">Click to edit...</span>}
                                         </span>
@@ -681,28 +670,6 @@ const PersonalOrganizer = () => {
                                 </div>
                               );
                             })}
-                            {editingBrandUrl && wardrobeData[category.id]?.[col]?.some((_, idx) => `${category.id}-${col}-${idx}` === editingBrandUrl) && (
-                              <div className="mt-2 flex gap-2">
-                                <input
-                                  type="text"
-                                  value={brandUrls[editingBrandUrl] || ''}
-                                  onChange={(e) => updateBrandUrls({ ...brandUrls, [editingBrandUrl]: e.target.value })}
-                                  onBlur={() => {
-                                    const [catId, column, idx] = editingBrandUrl.split('-');
-                                    updateBrandUrl(parseInt(catId), column, parseInt(idx), brandUrls[editingBrandUrl] || '');
-                                  }}
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      const [catId, column, idx] = editingBrandUrl.split('-');
-                                      updateBrandUrl(parseInt(catId), column, parseInt(idx), brandUrls[editingBrandUrl] || '');
-                                    }
-                                  }}
-                                  placeholder="Enter website URL..."
-                                  className="flex-1 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-indigo-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white shadow-sm"
-                                  autoFocus
-                                />
-                              </div>
-                            )}
                             {editingImageUrl && wardrobeData[category.id]?.[col]?.some((_, idx) => `${category.id}-${col}-${idx}` === editingImageUrl) && (
                               <div className="mt-2 flex gap-2">
                                 <input
@@ -736,7 +703,7 @@ const PersonalOrganizer = () => {
                         </td>
                       );
                     })}
-                    <td className="p-1.5 sm:p-3 md:p-5 text-center">
+                    <td className="p-1 sm:p-2 md:p-3 text-center">
                       <button
                         onClick={() => deleteCategory(category.id)}
                         className="text-red-500 hover:text-red-700 p-1 sm:p-2 transition-all duration-150 hover:scale-110 rounded-lg hover:bg-red-50"
@@ -757,11 +724,6 @@ const PersonalOrganizer = () => {
         {/* Blueprint Tab Content */}
         {activeTab === 'blueprint' && (
           <Blueprint />
-        )}
-
-        {/* Todo Tab Content */}
-        {activeTab === 'todo' && (
-          <Todo />
         )}
 
         {/* Grooming Journal Tab Content */}
