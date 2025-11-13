@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles, Image as ImageIcon, Settings } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Blueprint from './Blueprint';
@@ -41,6 +41,10 @@ const PersonalOrganizer = () => {
   const [showSyncSettings, setShowSyncSettings] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
 
+  // Track if component has mounted to prevent auto-upload on initial load
+  const isInitialMount = useRef(true);
+  const syncTimeoutRef = useRef(null);
+
   // Initialize Supabase on mount if credentials exist
   useEffect(() => {
     if (supabaseUrl && supabaseAnonKey) {
@@ -69,6 +73,8 @@ const PersonalOrganizer = () => {
           setSyncStatus('');
         }
       }
+      // Mark that initial mount is complete
+      isInitialMount.current = false;
     };
 
     autoDownload();
@@ -76,12 +82,22 @@ const PersonalOrganizer = () => {
 
   // Auto-upload when data changes (debounced)
   useEffect(() => {
+    // Skip auto-upload on initial mount to prevent race condition with auto-download
+    if (isInitialMount.current) {
+      return;
+    }
+
     if (!supabaseUrl || !supabaseAnonKey || !userId) return;
+
+    // Clear any existing timeout
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
 
     // Show brief upload indicator
     setSyncStatus('💾 Saving...');
 
-    const timeoutId = setTimeout(async () => {
+    syncTimeoutRef.current = setTimeout(async () => {
       try {
         await syncService.uploadData(userId);
         setSyncStatus('✅ Saved');
@@ -93,7 +109,11 @@ const PersonalOrganizer = () => {
       }
     }, 2000); // Debounce for 2 seconds
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
   }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, imageUrls, supabaseUrl, supabaseAnonKey, userId]);
 
   const columns = ['over', 'tops', 'bottoms', 'shoes', 'accessories', 'brands'];
