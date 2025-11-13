@@ -5,6 +5,7 @@ import { wardrobeAgent } from './wardrobeAgent';
 import { groomingAgent } from './groomingAgent';
 import { lifePlanningAgent } from './lifePlanningAgent';
 import { callClaude } from './claudeAPI';
+import { syncService } from '../services/syncService';
 
 const AgentOrchestrator = () => {
   const [conversationHistory, setConversationHistory] = useState([]);
@@ -16,11 +17,16 @@ const AgentOrchestrator = () => {
   const [testStatus, setTestStatus] = useState(''); // 'testing', 'success', 'error'
   const [testMessage, setTestMessage] = useState('');
   const messagesEndRef = useRef(null);
+  const syncTimeoutRef = useRef(null);
+  const isInitialMount = useRef(true);
 
   // Get full context and API key from store
   const getAllData = useStore((state) => state.getAllData);
   const claudeApiKey = useStore((state) => state.claudeApiKey);
   const updateClaudeApiKey = useStore((state) => state.updateClaudeApiKey);
+  const userId = useStore((state) => state.userId);
+  const supabaseUrl = useStore((state) => state.supabaseUrl);
+  const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
 
   // Load conversation history from localStorage on mount
   useEffect(() => {
@@ -37,16 +43,88 @@ const AgentOrchestrator = () => {
     }
   }, []);
 
-  // Save conversation history to localStorage whenever it changes
+  // Listen for storage events (when data is synced from another tab/device)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'ai_chat_history' || e.key === null) {
+        // Reload chat history from localStorage
+        try {
+          const savedHistory = localStorage.getItem('ai_chat_history');
+          if (savedHistory) {
+            const parsed = JSON.parse(savedHistory);
+            if (Array.isArray(parsed)) {
+              setConversationHistory(parsed);
+              console.log('📥 AI chat history reloaded from sync');
+            }
+          }
+        } catch (error) {
+          console.error('Error reloading chat history:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom sync event (for same-tab updates)
+    const handleSyncEvent = () => {
+      try {
+        const savedHistory = localStorage.getItem('ai_chat_history');
+        if (savedHistory) {
+          const parsed = JSON.parse(savedHistory);
+          if (Array.isArray(parsed)) {
+            setConversationHistory(parsed);
+            console.log('📥 AI chat history reloaded from sync');
+          }
+        }
+      } catch (error) {
+        console.error('Error reloading chat history:', error);
+      }
+    };
+
+    window.addEventListener('supabase-sync-complete', handleSyncEvent);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('supabase-sync-complete', handleSyncEvent);
+    };
+  }, []);
+
+  // Save conversation history to localStorage and trigger sync
   useEffect(() => {
     try {
       if (conversationHistory.length > 0) {
         localStorage.setItem('ai_chat_history', JSON.stringify(conversationHistory));
+
+        // Trigger auto-upload to Supabase (skip on initial mount)
+        if (!isInitialMount.current && userId && supabaseUrl && supabaseAnonKey) {
+          // Clear any existing timeout
+          if (syncTimeoutRef.current) {
+            clearTimeout(syncTimeoutRef.current);
+          }
+
+          // Debounce sync for 2 seconds
+          syncTimeoutRef.current = setTimeout(async () => {
+            try {
+              await syncService.uploadData(userId);
+              console.log('✅ AI chat history synced to Supabase');
+            } catch (error) {
+              console.error('❌ Failed to sync AI chat history:', error);
+            }
+          }, 2000);
+        } else {
+          isInitialMount.current = false;
+        }
       }
     } catch (error) {
       console.error('Error saving chat history:', error);
     }
-  }, [conversationHistory]);
+
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, [conversationHistory, userId, supabaseUrl, supabaseAnonKey]);
 
   // Initialize temp API key when settings open
   useEffect(() => {

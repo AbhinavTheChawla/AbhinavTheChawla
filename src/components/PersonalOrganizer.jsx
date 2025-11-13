@@ -67,6 +67,10 @@ const PersonalOrganizer = () => {
           if (result.success && !result.firstSync && result.hasChanges) {
             // Reload state from localStorage instead of refreshing the page
             reloadFromStorage();
+
+            // Dispatch event to notify other components to reload
+            window.dispatchEvent(new CustomEvent('supabase-sync-complete'));
+
             setSyncStatus('✅ Synced');
             setTimeout(() => setSyncStatus(''), 3000);
           } else if (result.success) {
@@ -123,6 +127,43 @@ const PersonalOrganizer = () => {
       }
     };
   }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, imageUrls, supabaseUrl, supabaseAnonKey, userId]);
+
+  // Real-time polling for cross-device sync (check every 10 seconds)
+  useEffect(() => {
+    if (!supabaseUrl || !supabaseAnonKey || !userId) return;
+
+    const pollInterval = setInterval(async () => {
+      // Don't poll if currently syncing or if there are pending uploads
+      if (syncService.isSyncing() || syncTimeoutRef.current) {
+        return;
+      }
+
+      try {
+        const result = await syncService.downloadData(userId);
+
+        if (result.success && result.hasChanges) {
+          console.log('🔄 Detected remote changes, syncing...');
+
+          // Reload state from localStorage
+          reloadFromStorage();
+
+          // Dispatch event to notify other components to reload
+          window.dispatchEvent(new CustomEvent('supabase-sync-complete'));
+
+          // Show brief notification
+          setSyncStatus('🔄 Synced from other device');
+          setTimeout(() => setSyncStatus(''), 3000);
+        }
+      } catch (error) {
+        console.error('Polling sync failed:', error);
+        // Don't show error to user for background polls
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [supabaseUrl, supabaseAnonKey, userId, reloadFromStorage]);
 
   const columns = ['over', 'tops', 'bottoms', 'shoes', 'accessories', 'brands'];
   const columnNames = {

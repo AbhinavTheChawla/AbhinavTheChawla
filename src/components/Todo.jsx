@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, X } from 'lucide-react';
+import useStore from '../store';
+import { syncService } from '../services/syncService';
 
 const Todo = () => {
   const loadFromStorage = (key, defaultValue) => {
@@ -12,21 +14,81 @@ const Todo = () => {
     }
   };
 
+  const userId = useStore((state) => state.userId);
+  const supabaseUrl = useStore((state) => state.supabaseUrl);
+  const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
+
   const [notes, setNotes] = useState(() => loadFromStorage('todo_notes', []));
   const [selectedNoteId, setSelectedNoteId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const editorRef = useRef(null);
   const titleRef = useRef(null);
+  const syncTimeoutRef = useRef(null);
+  const isInitialMount = useRef(true);
 
-  // Auto-save notes to localStorage
+  // Auto-save notes to localStorage and trigger sync
   useEffect(() => {
     try {
       localStorage.setItem('todo_notes', JSON.stringify(notes));
+
+      // Trigger auto-upload to Supabase (skip on initial mount)
+      if (!isInitialMount.current && userId && supabaseUrl && supabaseAnonKey) {
+        // Clear any existing timeout
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+        }
+
+        // Debounce sync for 2 seconds
+        syncTimeoutRef.current = setTimeout(async () => {
+          try {
+            await syncService.uploadData(userId);
+            console.log('✅ Todo notes synced to Supabase');
+          } catch (error) {
+            console.error('❌ Failed to sync todo notes:', error);
+          }
+        }, 2000);
+      } else {
+        isInitialMount.current = false;
+      }
     } catch (error) {
       console.error('Error saving notes:', error);
     }
-  }, [notes]);
+
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, [notes, userId, supabaseUrl, supabaseAnonKey]);
+
+  // Listen for storage events (when data is synced from another tab/device)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'todo_notes' || e.key === null) {
+        // Reload notes from localStorage
+        const reloadedNotes = loadFromStorage('todo_notes', []);
+        setNotes(reloadedNotes);
+        console.log('📥 Todo notes reloaded from sync');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom sync event (for same-tab updates)
+    const handleSyncEvent = () => {
+      const reloadedNotes = loadFromStorage('todo_notes', []);
+      setNotes(reloadedNotes);
+      console.log('📥 Todo notes reloaded from sync');
+    };
+
+    window.addEventListener('supabase-sync-complete', handleSyncEvent);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('supabase-sync-complete', handleSyncEvent);
+    };
+  }, []);
 
   // Select first note on mount if available
   useEffect(() => {
