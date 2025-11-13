@@ -86,6 +86,7 @@ const useStore = create((set, get) => ({
   wishlist: new Set(loadFromStorage('wardrobe_wishlist', [])),
   brandUrls: loadFromStorage('wardrobe_brand_urls', {}),
   wishlistUrls: loadFromStorage('wardrobe_wishlist_urls', {}),
+  imageUrls: loadFromStorage('wardrobe_image_urls', {}),
 
   // Grooming State
   groomingData: loadFromStorage('groomingData', {
@@ -135,6 +136,11 @@ const useStore = create((set, get) => ({
 
   // AI Settings
   claudeApiKey: loadFromStorage('claude_api_key', ''),
+
+  // Supabase Settings
+  supabaseUrl: loadFromStorage('supabase_url', ''),
+  supabaseAnonKey: loadFromStorage('supabase_anon_key', ''),
+  userId: loadFromStorage('user_id', ''),
 
   // Blueprint State
   blueprintData: loadFromStorage('blueprintData', {
@@ -207,6 +213,11 @@ const useStore = create((set, get) => ({
     saveToStorage('wardrobe_wishlist_urls', wishlistUrls);
   },
 
+  updateImageUrls: (imageUrls) => {
+    set({ imageUrls });
+    saveToStorage('wardrobe_image_urls', imageUrls);
+  },
+
   // Actions for Grooming
   updateGrooming: (groomingData) => {
     set({ groomingData });
@@ -225,6 +236,14 @@ const useStore = create((set, get) => ({
     saveToStorage('claude_api_key', apiKey);
   },
 
+  // Actions for Supabase Settings
+  updateSupabaseSettings: (url, anonKey, userId) => {
+    set({ supabaseUrl: url, supabaseAnonKey: anonKey, userId });
+    saveToStorage('supabase_url', url);
+    saveToStorage('supabase_anon_key', anonKey);
+    saveToStorage('user_id', userId);
+  },
+
   // Get all data for AI context
   getAllData: () => {
     const state = get();
@@ -234,7 +253,8 @@ const useStore = create((set, get) => ({
         data: state.wardrobeData,
         wishlist: Array.from(state.wishlist),
         brandUrls: state.brandUrls,
-        wishlistUrls: state.wishlistUrls
+        wishlistUrls: state.wishlistUrls,
+        imageUrls: state.imageUrls
       },
       grooming: state.groomingData,
       blueprint: state.blueprintData
