@@ -24,8 +24,28 @@ const ImagePreview = ({ imageUrl, itemName }) => {
 
   const updatePosition = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = rect.right + 10;
-    const y = rect.top;
+    let x = rect.right + 10;
+    let y = rect.top;
+
+    // Ensure the preview stays within the viewport
+    const previewWidth = 400; // Approximate width for 256px height image
+    const previewHeight = 300; // Approximate height including padding
+
+    // Adjust horizontal position if it would go off-screen
+    if (x + previewWidth > window.innerWidth) {
+      x = rect.left - previewWidth - 10; // Show on left side instead
+    }
+
+    // Adjust vertical position if it would go off-screen
+    if (y + previewHeight > window.innerHeight) {
+      y = window.innerHeight - previewHeight - 10;
+    }
+
+    // Ensure it doesn't go off the top
+    if (y < 10) {
+      y = 10;
+    }
+
     setPreviewPosition({ x, y });
   };
 
@@ -54,7 +74,8 @@ const ImagePreview = ({ imageUrl, itemName }) => {
               <img
                 src={imageUrl}
                 alt={itemName}
-                className="max-w-lg max-h-96 object-contain"
+                className="object-contain"
+                style={{ height: '256px', width: 'auto', maxWidth: '90vw' }}
                 onError={() => setImageError(true)}
               />
             ) : (
