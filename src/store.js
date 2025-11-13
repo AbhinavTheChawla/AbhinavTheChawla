@@ -137,6 +137,11 @@ const useStore = create((set, get) => ({
   // AI Settings
   claudeApiKey: loadFromStorage('claude_api_key', ''),
 
+  // Supabase Settings
+  supabaseUrl: loadFromStorage('supabase_url', ''),
+  supabaseAnonKey: loadFromStorage('supabase_anon_key', ''),
+  userId: loadFromStorage('user_id', ''),
+
   // Blueprint State
   blueprintData: loadFromStorage('blueprintData', {
     lifeNow: {
@@ -229,6 +234,14 @@ const useStore = create((set, get) => ({
   updateClaudeApiKey: (apiKey) => {
     set({ claudeApiKey: apiKey });
     saveToStorage('claude_api_key', apiKey);
+  },
+
+  // Actions for Supabase Settings
+  updateSupabaseSettings: (url, anonKey, userId) => {
+    set({ supabaseUrl: url, supabaseAnonKey: anonKey, userId });
+    saveToStorage('supabase_url', url);
+    saveToStorage('supabase_anon_key', anonKey);
+    saveToStorage('user_id', userId);
   },
 
   // Get all data for AI context

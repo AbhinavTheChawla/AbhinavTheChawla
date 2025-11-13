@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles, Image as ImageIcon, Cloud } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Blueprint from './Blueprint';
 import Todo from './Todo';
 import AgentOrchestrator from '../agents/AgentOrchestrator';
 import ImagePreview from './ImagePreview';
+import SyncSettings from './SyncSettings';
 import useStore from '../store';
+import { initializeSupabase } from '../services/supabaseClient';
 
 const PersonalOrganizer = () => {
   // Get state and actions from Zustand store
@@ -23,6 +25,9 @@ const PersonalOrganizer = () => {
   const updateWishlistUrls = useStore((state) => state.updateWishlistUrls);
   const updateImageUrls = useStore((state) => state.updateImageUrls);
 
+  const supabaseUrl = useStore((state) => state.supabaseUrl);
+  const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
+
   const [activeTab, setActiveTab] = useState('blueprint');
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -30,6 +35,14 @@ const PersonalOrganizer = () => {
   const [editingBrandUrl, setEditingBrandUrl] = useState(null);
   const [editingImageUrl, setEditingImageUrl] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [showSyncSettings, setShowSyncSettings] = useState(false);
+
+  // Initialize Supabase on mount if credentials exist
+  useEffect(() => {
+    if (supabaseUrl && supabaseAnonKey) {
+      initializeSupabase(supabaseUrl, supabaseAnonKey);
+    }
+  }, [supabaseUrl, supabaseAnonKey]);
 
   const columns = ['over', 'tops', 'bottoms', 'shoes', 'accessories', 'brands'];
   const columnNames = {
@@ -278,6 +291,14 @@ const PersonalOrganizer = () => {
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <button
+              onClick={() => setShowSyncSettings(true)}
+              className="px-3 sm:px-4 py-2 bg-blue-500/90 text-white text-xs sm:text-sm rounded-xl hover:bg-blue-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-2 flex-1 sm:flex-none whitespace-nowrap"
+            >
+              <Cloud size={16} />
+              <span className="hidden sm:inline">Cloud Sync</span>
+              <span className="sm:hidden">Sync</span>
+            </button>
+            <button
               onClick={clearAllData}
               className="px-3 sm:px-4 py-2 bg-red-500/90 text-white text-xs sm:text-sm rounded-xl hover:bg-red-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex-1 sm:flex-none whitespace-nowrap"
             >
@@ -285,6 +306,9 @@ const PersonalOrganizer = () => {
             </button>
           </div>
         </div>
+
+        {/* Sync Settings Modal */}
+        <SyncSettings isOpen={showSyncSettings} onClose={() => setShowSyncSettings(false)} />
 
         {/* Tab Navigation */}
         <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-slate-200 overflow-x-auto">
