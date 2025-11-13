@@ -49,12 +49,12 @@ const ImagePreview = ({ imageUrl, itemName }) => {
             top: `${previewPosition.y}px`,
           }}
         >
-          <div className="bg-white rounded-xl shadow-2xl border-2 border-slate-200 overflow-hidden max-w-sm">
+          <div className="bg-white rounded-xl shadow-2xl border-2 border-slate-200 overflow-hidden">
             {!imageError ? (
               <img
                 src={imageUrl}
                 alt={itemName}
-                className="w-64 h-64 object-cover"
+                className="max-w-lg max-h-96 object-contain"
                 onError={() => setImageError(true)}
               />
             ) : (

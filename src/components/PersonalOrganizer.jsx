@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles, Image as ImageIcon, Cloud } from 'lucide-react';
+import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles, Image as ImageIcon, Cloud, CloudOff, RefreshCw, Settings } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Blueprint from './Blueprint';
 import Todo from './Todo';
@@ -8,6 +8,7 @@ import ImagePreview from './ImagePreview';
 import SyncSettings from './SyncSettings';
 import useStore from '../store';
 import { initializeSupabase } from '../services/supabaseClient';
+import { syncService } from '../services/syncService';
 
 const PersonalOrganizer = () => {
   // Get state and actions from Zustand store
@@ -27,6 +28,7 @@ const PersonalOrganizer = () => {
 
   const supabaseUrl = useStore((state) => state.supabaseUrl);
   const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
+  const userId = useStore((state) => state.userId);
 
   const [activeTab, setActiveTab] = useState('blueprint');
   const [showWishlistModal, setShowWishlistModal] = useState(false);
@@ -36,6 +38,8 @@ const PersonalOrganizer = () => {
   const [editingImageUrl, setEditingImageUrl] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showSyncSettings, setShowSyncSettings] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Initialize Supabase on mount if credentials exist
   useEffect(() => {
@@ -43,6 +47,48 @@ const PersonalOrganizer = () => {
       initializeSupabase(supabaseUrl, supabaseAnonKey);
     }
   }, [supabaseUrl, supabaseAnonKey]);
+
+  // Auto-download on mount
+  useEffect(() => {
+    const autoDownload = async () => {
+      if (supabaseUrl && supabaseAnonKey && userId) {
+        try {
+          setSyncStatus('⬇️ Auto-downloading...');
+          const result = await syncService.downloadData(userId);
+          if (result.success && !result.firstSync && result.requiresReload) {
+            setSyncStatus('✅ Data downloaded!');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } else if (result.success) {
+            setSyncStatus('✅ Synced');
+            setTimeout(() => setSyncStatus(''), 2000);
+          }
+        } catch (error) {
+          console.error('Auto-download failed:', error);
+          setSyncStatus('');
+        }
+      }
+    };
+
+    autoDownload();
+  }, []); // Only run once on mount
+
+  // Auto-upload when data changes (debounced)
+  useEffect(() => {
+    if (!supabaseUrl || !supabaseAnonKey || !userId) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await syncService.uploadData(userId);
+        console.log('Auto-uploaded data');
+      } catch (error) {
+        console.error('Auto-upload failed:', error);
+      }
+    }, 2000); // Debounce for 2 seconds
+
+    return () => clearTimeout(timeoutId);
+  }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, imageUrls, supabaseUrl, supabaseAnonKey, userId]);
 
   const columns = ['over', 'tops', 'bottoms', 'shoes', 'accessories', 'brands'];
   const columnNames = {
@@ -202,18 +248,6 @@ const PersonalOrganizer = () => {
     setEditingCategory(null);
   };
 
-  const clearAllData = () => {
-    if (window.confirm('Are you sure you want to clear all wardrobe data? This cannot be undone.')) {
-      localStorage.removeItem('wardrobe_categories');
-      localStorage.removeItem('wardrobe_data');
-      localStorage.removeItem('wardrobe_wishlist');
-      localStorage.removeItem('wardrobe_brand_urls');
-      localStorage.removeItem('wardrobe_wishlist_urls');
-      localStorage.removeItem('wardrobe_image_urls');
-      window.location.reload();
-    }
-  };
-
   const updateBrandUrl = (categoryId, column, itemIndex, url) => {
     const key = `${categoryId}-${column}-${itemIndex}`;
     let finalUrl = url.trim();
@@ -278,32 +312,140 @@ const PersonalOrganizer = () => {
     return items;
   };
 
+  const handleUpload = async () => {
+    if (!supabaseUrl || !supabaseAnonKey || !userId) {
+      setSyncStatus('⚠️ Configure sync settings first');
+      setTimeout(() => setSyncStatus(''), 3000);
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus('⬆️ Uploading...');
+
+    try {
+      await syncService.uploadData(userId);
+      setSyncStatus('✅ Uploaded!');
+      setTimeout(() => setSyncStatus(''), 2000);
+    } catch (error) {
+      setSyncStatus('❌ Upload failed');
+      setTimeout(() => setSyncStatus(''), 3000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!supabaseUrl || !supabaseAnonKey || !userId) {
+      setSyncStatus('⚠️ Configure sync settings first');
+      setTimeout(() => setSyncStatus(''), 3000);
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus('⬇️ Downloading...');
+
+    try {
+      const result = await syncService.downloadData(userId);
+      if (result.success && !result.firstSync && result.requiresReload) {
+        setSyncStatus('✅ Downloaded! Reloading...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else if (result.firstSync) {
+        setSyncStatus('No remote data found');
+        setTimeout(() => setSyncStatus(''), 3000);
+      } else {
+        setSyncStatus('✅ Downloaded!');
+        setTimeout(() => setSyncStatus(''), 2000);
+      }
+    } catch (error) {
+      setSyncStatus('❌ Download failed');
+      setTimeout(() => setSyncStatus(''), 3000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleFullSync = async () => {
+    if (!supabaseUrl || !supabaseAnonKey || !userId) {
+      setSyncStatus('⚠️ Configure sync settings first');
+      setTimeout(() => setSyncStatus(''), 3000);
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus('🔄 Syncing...');
+
+    try {
+      const result = await syncService.fullSync(userId);
+      if (result.success && result.requiresReload) {
+        setSyncStatus('✅ Synced! Reloading...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        setSyncStatus('✅ Synced!');
+        setTimeout(() => setSyncStatus(''), 2000);
+      }
+    } catch (error) {
+      setSyncStatus('❌ Sync failed');
+      setTimeout(() => setSyncStatus(''), 3000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-2 sm:p-4 md:p-6">
       <div className="max-w-full mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
-          <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              My Personal Organizer
-            </h1>
-            <p className="text-slate-500 mt-1 text-xs sm:text-sm">Manage your wardrobe and grooming routine</p>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button
-              onClick={() => setShowSyncSettings(true)}
-              className="px-3 sm:px-4 py-2 bg-blue-500/90 text-white text-xs sm:text-sm rounded-xl hover:bg-blue-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-2 flex-1 sm:flex-none whitespace-nowrap"
-            >
-              <Cloud size={16} />
-              <span className="hidden sm:inline">Cloud Sync</span>
-              <span className="sm:hidden">Sync</span>
-            </button>
-            <button
-              onClick={clearAllData}
-              className="px-3 sm:px-4 py-2 bg-red-500/90 text-white text-xs sm:text-sm rounded-xl hover:bg-red-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex-1 sm:flex-none whitespace-nowrap"
-            >
-              Clear All Data
-            </button>
+        <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* Sync Status */}
+            {syncStatus && (
+              <div className="px-3 py-2 bg-slate-100 text-slate-700 text-xs rounded-xl flex items-center justify-center whitespace-nowrap">
+                {syncStatus}
+              </div>
+            )}
+
+            {/* Sync Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleFullSync}
+                disabled={isSyncing}
+                className="px-2 sm:px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-xs rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1 flex-1 sm:flex-none whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Full Sync"
+              >
+                <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">Sync</span>
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={isSyncing}
+                className="px-2 sm:px-3 py-2 bg-blue-500/90 text-white text-xs rounded-xl hover:bg-blue-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1 flex-1 sm:flex-none whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Upload to Cloud"
+              >
+                <Cloud size={14} />
+                <span className="hidden sm:inline">Upload</span>
+              </button>
+              <button
+                onClick={handleDownload}
+                disabled={isSyncing}
+                className="px-2 sm:px-3 py-2 bg-indigo-500/90 text-white text-xs rounded-xl hover:bg-indigo-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1 flex-1 sm:flex-none whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Download from Cloud"
+              >
+                <CloudOff size={14} />
+                <span className="hidden sm:inline">Download</span>
+              </button>
+              <button
+                onClick={() => setShowSyncSettings(true)}
+                className="px-2 sm:px-3 py-2 bg-slate-500/90 text-white text-xs rounded-xl hover:bg-slate-600 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-1 whitespace-nowrap"
+                title="Sync Settings"
+              >
+                <Settings size={14} />
+                <span className="hidden sm:inline">Settings</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -352,23 +494,6 @@ const PersonalOrganizer = () => {
           >
             <span className="hidden sm:inline">Grooming Journal</span>
             <span className="sm:hidden">Grooming</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('wishlist')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 flex items-center gap-1 sm:gap-2 whitespace-nowrap ${
-              activeTab === 'wishlist'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            <Heart size={14} className={activeTab === 'wishlist' ? 'fill-emerald-600' : ''} />
-            <span className="hidden sm:inline">Wishlist</span>
-            <span className="sm:hidden">List</span>
-            {wishlist.size > 0 && (
-              <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
-                {wishlist.size}
-              </span>
-            )}
           </button>
           <button
             onClick={() => setActiveTab('ai')}
@@ -696,92 +821,6 @@ const PersonalOrganizer = () => {
               </ul>
             </div>
           </>
-        )}
-
-        {/* Wishlist Tab Content */}
-        {activeTab === 'wishlist' && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-slate-200 p-4 sm:p-6">
-            <div className="mb-4 sm:mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <Heart className="fill-emerald-500 text-emerald-500" size={20} />
-                My Wishlist
-              </h2>
-              <p className="text-slate-500 mt-1 text-xs sm:text-sm">Items you want to purchase</p>
-            </div>
-
-            {getWishlistItems().length === 0 ? (
-              <div className="text-center py-8 sm:py-12 text-gray-500">
-                <ShoppingCart size={40} className="sm:w-12 sm:h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-base sm:text-lg">Your wishlist is empty</p>
-                <p className="text-xs sm:text-sm mt-2 px-4">Click the shopping cart icon on items in the Wardrobe tab to add them to your wishlist</p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-                  {getWishlistItems().map((item) => (
-                    <div key={item.key} className="bg-slate-50 rounded-lg p-3 sm:p-4 hover:bg-slate-100 transition-colors">
-                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
-                        <div className="flex-1 w-full">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold text-gray-800 text-sm sm:text-base">{item.itemName}</span>
-                          </div>
-                          <div className="text-xs sm:text-sm text-gray-600">
-                            <span className="font-medium">{item.categoryName}</span>
-                            <span className="mx-2">•</span>
-                            <span>{item.columnName}</span>
-                          </div>
-                          <div className="mt-2 sm:mt-3">
-                            <input
-                              type="text"
-                              value={item.url}
-                              onChange={(e) => updateWishlistUrl(item.key, e.target.value)}
-                              placeholder="Add purchase link (e.g., https://store.com/product)..."
-                              className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex gap-2 items-start w-full sm:w-auto">
-                          {item.url && (
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-2 bg-blue-500 text-white text-xs sm:text-sm rounded-lg hover:bg-blue-600 flex items-center justify-center gap-1 transition-all duration-200 flex-1 sm:flex-none whitespace-nowrap"
-                            >
-                              <ExternalLink size={12} className="sm:w-3.5 sm:h-3.5" />
-                              Visit
-                            </a>
-                          )}
-                          <button
-                            onClick={() => {
-                              const [categoryId, column, itemIndex] = item.key.split('-');
-                              toggleWishlist(parseInt(categoryId), column, parseInt(itemIndex));
-                            }}
-                            className="px-3 py-2 bg-red-500 text-white text-xs sm:text-sm rounded-lg hover:bg-red-600 flex items-center justify-center gap-1 transition-all duration-200 flex-1 sm:flex-none whitespace-nowrap"
-                            title="Remove from wishlist"
-                          >
-                            <X size={12} className="sm:w-3.5 sm:h-3.5" />
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="p-3 sm:p-4 border-t border-slate-200 bg-slate-50 rounded-lg">
-                  <p className="text-xs sm:text-sm text-slate-600">
-                    <strong>Total items:</strong> {getWishlistItems().length}
-                    {getWishlistItems().filter(i => i.url).length > 0 && (
-                      <span className="ml-3 sm:ml-4">
-                        <strong>With links:</strong> {getWishlistItems().filter(i => i.url).length}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
         )}
 
         {/* Blueprint Tab Content */}
