@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles, Settings, X, Eye, EyeOff } from 'lucide-react';
+import { Send, Loader2, Sparkles, Settings, X, Eye, EyeOff, Trash2 } from 'lucide-react';
 import useStore from '../store';
 import { wardrobeAgent } from './wardrobeAgent';
 import { groomingAgent } from './groomingAgent';
@@ -21,6 +21,32 @@ const AgentOrchestrator = () => {
   const getAllData = useStore((state) => state.getAllData);
   const claudeApiKey = useStore((state) => state.claudeApiKey);
   const updateClaudeApiKey = useStore((state) => state.updateClaudeApiKey);
+
+  // Load conversation history from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem('ai_chat_history');
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        if (Array.isArray(parsed)) {
+          setConversationHistory(parsed);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+    }
+  }, []);
+
+  // Save conversation history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (conversationHistory.length > 0) {
+        localStorage.setItem('ai_chat_history', JSON.stringify(conversationHistory));
+      }
+    } catch (error) {
+      console.error('Error saving chat history:', error);
+    }
+  }, [conversationHistory]);
 
   // Initialize temp API key when settings open
   useEffect(() => {
@@ -47,6 +73,13 @@ const AgentOrchestrator = () => {
     setTestStatus('');
     setTestMessage('');
     setShowSettings(false);
+  };
+
+  const handleClearHistory = () => {
+    if (window.confirm('Are you sure you want to clear all chat history? This cannot be undone.')) {
+      setConversationHistory([]);
+      localStorage.removeItem('ai_chat_history');
+    }
   };
 
   const handleTestConnection = async () => {
@@ -288,13 +321,24 @@ Provide your synthesized response:`;
               <p className="text-violet-100 text-xs sm:text-sm">Your personal wardrobe, grooming, and life planning advisor</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-all"
-            title="Configure API Key"
-          >
-            <Settings className="text-white" size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            {conversationHistory.length > 0 && (
+              <button
+                onClick={handleClearHistory}
+                className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-all"
+                title="Clear Chat History"
+              >
+                <Trash2 className="text-white" size={20} />
+              </button>
+            )}
+            <button
+              onClick={() => setShowSettings(true)}
+              className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-all"
+              title="Configure API Key"
+            >
+              <Settings className="text-white" size={20} />
+            </button>
+          </div>
         </div>
       </div>
 

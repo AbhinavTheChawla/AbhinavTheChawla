@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles } from 'lucide-react';
+import { Plus, Trash2, X, ShoppingCart, ChevronUp, ChevronDown, ExternalLink, Heart, Sparkles, Image as ImageIcon } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Blueprint from './Blueprint';
 import Todo from './Todo';
 import AgentOrchestrator from '../agents/AgentOrchestrator';
+import ImagePreview from './ImagePreview';
 import useStore from '../store';
 
 const PersonalOrganizer = () => {
@@ -13,18 +14,21 @@ const PersonalOrganizer = () => {
   const wishlist = useStore((state) => state.wishlist);
   const brandUrls = useStore((state) => state.brandUrls);
   const wishlistUrls = useStore((state) => state.wishlistUrls);
+  const imageUrls = useStore((state) => state.imageUrls);
 
   const updateCategories = useStore((state) => state.updateCategories);
   const updateWardrobe = useStore((state) => state.updateWardrobe);
   const updateWishlist = useStore((state) => state.updateWishlist);
   const updateBrandUrls = useStore((state) => state.updateBrandUrls);
   const updateWishlistUrls = useStore((state) => state.updateWishlistUrls);
+  const updateImageUrls = useStore((state) => state.updateImageUrls);
 
   const [activeTab, setActiveTab] = useState('blueprint');
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingBrandUrl, setEditingBrandUrl] = useState(null);
+  const [editingImageUrl, setEditingImageUrl] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
 
   const columns = ['over', 'tops', 'bottoms', 'shoes', 'accessories', 'brands'];
@@ -192,6 +196,7 @@ const PersonalOrganizer = () => {
       localStorage.removeItem('wardrobe_wishlist');
       localStorage.removeItem('wardrobe_brand_urls');
       localStorage.removeItem('wardrobe_wishlist_urls');
+      localStorage.removeItem('wardrobe_image_urls');
       window.location.reload();
     }
   };
@@ -224,6 +229,22 @@ const PersonalOrganizer = () => {
       ...wishlistUrls,
       [key]: finalUrl
     });
+  };
+
+  const updateImageUrl = (categoryId, column, itemIndex, url) => {
+    const key = `${categoryId}-${column}-${itemIndex}`;
+    let finalUrl = url.trim();
+
+    // Add https:// if no protocol specified
+    if (finalUrl && !finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      finalUrl = 'https://' + finalUrl;
+    }
+
+    updateImageUrls({
+      ...imageUrls,
+      [key]: finalUrl
+    });
+    setEditingImageUrl(null);
   };
 
   const getWishlistItems = () => {
@@ -422,6 +443,7 @@ const PersonalOrganizer = () => {
                               // For brands column, handle URL linking
                               const isBrandsColumn = col === 'brands';
                               const brandUrl = brandUrls[itemKey] || '';
+                              const imageUrl = imageUrls[itemKey] || '';
 
                               return (
                                 <div key={itemIndex} className="flex items-center gap-1 sm:gap-2 group">
@@ -452,19 +474,32 @@ const PersonalOrganizer = () => {
                                     </button>
                                   </div>
                                   {!isBrandsColumn && (
-                                    <button
-                                      onClick={() => toggleWishlist(category.id, col, itemIndex)}
-                                      className="flex-shrink-0 transition-all duration-150"
-                                      title="Add to wishlist"
-                                    >
-                                      <ShoppingCart
-                                        size={14}
-                                        className={`sm:w-4 sm:h-4 ${isWishlist
-                                          ? 'fill-emerald-500 text-emerald-500'
-                                          : 'text-slate-300 group-hover:text-slate-400 hover:scale-110'
-                                        }`}
-                                      />
-                                    </button>
+                                    <>
+                                      <button
+                                        onClick={() => toggleWishlist(category.id, col, itemIndex)}
+                                        className="flex-shrink-0 transition-all duration-150"
+                                        title="Add to wishlist"
+                                      >
+                                        <ShoppingCart
+                                          size={14}
+                                          className={`sm:w-4 sm:h-4 ${isWishlist
+                                            ? 'fill-emerald-500 text-emerald-500'
+                                            : 'text-slate-300 group-hover:text-slate-400 hover:scale-110'
+                                          }`}
+                                        />
+                                      </button>
+                                      {imageUrl ? (
+                                        <ImagePreview imageUrl={imageUrl} itemName={item} />
+                                      ) : (
+                                        <button
+                                          onClick={() => setEditingImageUrl(itemKey)}
+                                          className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 transition-all duration-150"
+                                          title="Add image"
+                                        >
+                                          <ImageIcon size={14} className="sm:w-4 sm:h-4" />
+                                        </button>
+                                      )}
+                                    </>
                                   )}
                                   {isEditing ? (
                                     <input
@@ -539,6 +574,28 @@ const PersonalOrganizer = () => {
                                 />
                               </div>
                             )}
+                            {editingImageUrl && wardrobeData[category.id]?.[col]?.some((_, idx) => `${category.id}-${col}-${idx}` === editingImageUrl) && (
+                              <div className="mt-2 flex gap-2">
+                                <input
+                                  type="text"
+                                  value={imageUrls[editingImageUrl] || ''}
+                                  onChange={(e) => updateImageUrls({ ...imageUrls, [editingImageUrl]: e.target.value })}
+                                  onBlur={() => {
+                                    const [catId, column, idx] = editingImageUrl.split('-');
+                                    updateImageUrl(parseInt(catId), column, parseInt(idx), imageUrls[editingImageUrl] || '');
+                                  }}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const [catId, column, idx] = editingImageUrl.split('-');
+                                      updateImageUrl(parseInt(catId), column, parseInt(idx), imageUrls[editingImageUrl] || '');
+                                    }
+                                  }}
+                                  placeholder="Enter image URL..."
+                                  className="flex-1 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white shadow-sm"
+                                  autoFocus
+                                />
+                              </div>
+                            )}
                             <button
                               onClick={() => addItem(category.id, col)}
                               className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-medium transition-colors duration-150 hover:gap-2"
@@ -583,6 +640,10 @@ const PersonalOrganizer = () => {
                 <li className="flex items-start gap-2">
                   <span className="text-indigo-400 mt-0.5">•</span>
                   <span>Click the shopping cart icon to mark items you want to buy</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 mt-0.5">•</span>
+                  <span><strong>NEW:</strong> Click the image icon (on hover) to add a photo URL, then hover to preview</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-indigo-400 mt-0.5">•</span>
