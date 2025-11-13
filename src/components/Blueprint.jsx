@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import useStore from '../store';
 import WeeklyTracker from './WeeklyTracker';
+import DailyReflection from './DailyReflection';
 
 const Blueprint = () => {
   // Get state and actions from Zustand store
@@ -141,11 +142,11 @@ const Blueprint = () => {
         />
       </div>
 
-      {/* Daily Intentions Section */}
+      {/* Blueprint Section (formerly Daily Intentions) */}
       <div className="mb-4 sm:mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-blue-100">
         <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-3 flex items-center gap-2">
           <span>🎯</span>
-          Daily Intentions
+          Blueprint
         </h3>
         <textarea
           value={data.dailyIntentions || ''}
@@ -157,14 +158,11 @@ const Blueprint = () => {
         />
       </div>
 
-      {/* Weekly Tracker Section */}
-      <WeeklyTracker />
-
-      {/* Todo/Notes Section */}
-      <div className="mb-6 sm:mb-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-amber-100">
+      {/* Todo List Section */}
+      <div className="mb-4 sm:mb-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-amber-100">
         <h3 className="text-lg sm:text-xl font-bold text-amber-900 mb-3 flex items-center gap-2">
           <span>📝</span>
-          Notes & Tasks
+          Todo List
         </h3>
         <textarea
           value={data.todoContent || ''}
@@ -175,6 +173,12 @@ const Blueprint = () => {
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
         />
       </div>
+
+      {/* Daily Reflection Section */}
+      <DailyReflection />
+
+      {/* Weekly Tracker Section */}
+      <WeeklyTracker />
     </div>
   );
 };
