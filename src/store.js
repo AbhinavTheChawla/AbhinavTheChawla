@@ -183,6 +183,18 @@ const useStore = create((set, get) => ({
     history: [] // Array of past weeks: { weekStart, gymSessions, zone2Minutes }
   }),
 
+  // Daily Reflection State
+  dailyReflection: loadFromStorage('dailyReflection', {
+    currentDate: null,
+    answers: ['', '', '', '', ''], // 5 questions
+    history: [] // Array of past reflections: { date, answers }
+  }),
+
+  // Weight Tracking State
+  weightData: loadFromStorage('weightData', {
+    entries: [] // Array of weight entries: { date, weight }
+  }),
+
   // Actions for Wardrobe
   updateCategories: (categories) => {
     set({ categories });
@@ -230,6 +242,18 @@ const useStore = create((set, get) => ({
   updateWeeklyTracker: (weeklyTracker) => {
     set({ weeklyTracker });
     saveToStorage('weeklyTracker', weeklyTracker);
+  },
+
+  // Actions for Daily Reflection
+  updateDailyReflection: (dailyReflection) => {
+    set({ dailyReflection });
+    saveToStorage('dailyReflection', dailyReflection);
+  },
+
+  // Actions for Weight Tracking
+  updateWeightData: (weightData) => {
+    set({ weightData });
+    saveToStorage('weightData', weightData);
   },
 
   // Actions for AI Settings
@@ -280,7 +304,10 @@ const useStore = create((set, get) => ({
       wishlistUrls: loadFromStorage('wardrobe_wishlist_urls', {}),
       imageUrls: loadFromStorage('wardrobe_image_urls', {}),
       groomingData: loadFromStorage('groomingData', {}),
-      blueprintData: loadFromStorage('blueprintData', {})
+      blueprintData: loadFromStorage('blueprintData', {}),
+      weeklyTracker: loadFromStorage('weeklyTracker', {}),
+      dailyReflection: loadFromStorage('dailyReflection', {}),
+      weightData: loadFromStorage('weightData', {})
     });
   }
 }));

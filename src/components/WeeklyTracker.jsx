@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import useStore from '../store';
+import WeightGraph from './WeightGraph';
 
 const WeeklyTracker = () => {
   const weeklyTracker = useStore((state) => state.weeklyTracker);
@@ -251,6 +252,9 @@ const WeeklyTracker = () => {
               </button>
             </div>
           </div>
+
+          {/* Weight Tracking Graph */}
+          <WeightGraph />
         </div>
       ) : (
         // History View
