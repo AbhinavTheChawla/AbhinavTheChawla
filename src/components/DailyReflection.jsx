@@ -7,11 +7,11 @@ const DailyReflection = () => {
   const [showHistory, setShowHistory] = useState(false);
 
   const questions = [
-    "What am I grateful for today?",
-    "What's one thing that went well today?",
-    "What's one thing I could have done better?",
-    "What did I learn today?",
-    "How did I show up as my best self today?"
+    "What mission did you progress?",
+    "Time you chose most difficult path?",
+    "A time you exercised agency + accountability?",
+    "A time you experienced and redirected emotion?",
+    "Time you had a non-ranking interaction"
   ];
 
   // Get today's date string
