@@ -55,10 +55,15 @@ const PersonalOrganizer = () => {
   // Auto-download on mount
   useEffect(() => {
     const autoDownload = async () => {
-      if (supabaseUrl && supabaseAnonKey && userId) {
-        try {
+      try {
+        if (supabaseUrl && supabaseAnonKey && userId) {
           setSyncStatus('⬇️ Syncing...');
           const result = await syncService.downloadData(userId);
+
+          // Mark initial mount as complete BEFORE reloading state
+          // This ensures future auto-uploads will work
+          isInitialMount.current = false;
+
           if (result.success && !result.firstSync && result.hasChanges) {
             // Reload state from localStorage instead of refreshing the page
             reloadFromStorage();
@@ -68,13 +73,16 @@ const PersonalOrganizer = () => {
             setSyncStatus('✅ Up to date');
             setTimeout(() => setSyncStatus(''), 3000);
           }
-        } catch (error) {
-          console.error('Auto-download failed:', error);
-          setSyncStatus('');
+        } else {
+          // No Supabase configured, still mark as complete so local changes can be made
+          isInitialMount.current = false;
         }
+      } catch (error) {
+        console.error('Auto-download failed:', error);
+        setSyncStatus('');
+        // Mark as complete even on error to allow local edits
+        isInitialMount.current = false;
       }
-      // Mark that initial mount is complete
-      isInitialMount.current = false;
     };
 
     autoDownload();
