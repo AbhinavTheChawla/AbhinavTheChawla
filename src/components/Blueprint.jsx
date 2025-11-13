@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import useStore from '../store';
+import WeeklyTracker from './WeeklyTracker';
 
 const Blueprint = () => {
   // Get state and actions from Zustand store
@@ -156,21 +157,8 @@ const Blueprint = () => {
         />
       </div>
 
-      {/* Weekly Intentions Section */}
-      <div className="mb-4 sm:mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-emerald-100">
-        <h3 className="text-lg sm:text-xl font-bold text-emerald-900 mb-3 flex items-center gap-2">
-          <span>📅</span>
-          Weekly Intentions
-        </h3>
-        <textarea
-          value={data.weeklyIntentions || ''}
-          onChange={(e) => updateField('weeklyIntentions', e.target.value)}
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-emerald-300 transition-all resize-none"
-          placeholder="What are your goals for this week?"
-          rows="6"
-          style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
-        />
-      </div>
+      {/* Weekly Tracker Section */}
+      <WeeklyTracker />
 
       {/* Todo/Notes Section */}
       <div className="mb-6 sm:mb-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-amber-100">
@@ -183,129 +171,10 @@ const Blueprint = () => {
           onChange={(e) => updateField('todoContent', e.target.value)}
           className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent hover:border-amber-300 transition-all resize-none leading-relaxed"
           placeholder="Your continuous note sheet..."
-          rows="12"
+          rows="20"
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
         />
       </div>
-
-      {/* Life RN Section - Collapsed for less prominence */}
-      <details className="mb-4 sm:mb-6">
-        <summary className="cursor-pointer bg-gradient-to-br from-slate-50 to-gray-50 rounded-lg sm:rounded-xl p-4 sm:p-5 border border-slate-200 hover:border-slate-300 transition-all">
-          <h3 className="text-base sm:text-lg font-bold text-slate-700 inline-flex items-center gap-2">
-            <span>⚡</span>
-            Life RN (Click to expand)
-          </h3>
-        </summary>
-        <div className="mt-3 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-blue-100">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Training</label>
-              <input
-                type="text"
-                value={data.lifeNow?.training || ''}
-                onChange={(e) => updateBlueprint({ ...data, lifeNow: { ...data.lifeNow, training: e.target.value }})}
-                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-slate-300 transition-all"
-                placeholder="Enter training routine..."
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Reading</label>
-              <input
-                type="text"
-                value={data.lifeNow?.reading || ''}
-                onChange={(e) => updateBlueprint({ ...data, lifeNow: { ...data.lifeNow, reading: e.target.value }})}
-                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-slate-300 transition-all"
-                placeholder="Enter reading list..."
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Sports</label>
-              <input
-                type="text"
-                value={data.lifeNow?.sports || ''}
-                onChange={(e) => updateBlueprint({ ...data, lifeNow: { ...data.lifeNow, sports: e.target.value }})}
-                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-slate-300 transition-all"
-                placeholder="Enter sports..."
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <div className="bg-white/60 rounded-lg p-3 sm:p-4">
-              <label className="block text-xs font-semibold text-slate-600 mb-2 sm:mb-3 uppercase tracking-wide">Daily Practices</label>
-              {renderEditableList('lifeNow', 'practices', 'Practice')}
-            </div>
-            <div className="bg-white/60 rounded-lg p-3 sm:p-4">
-              <label className="block text-xs font-semibold text-slate-600 mb-2 sm:mb-3 uppercase tracking-wide">Daily Goals</label>
-              {renderEditableList('lifeNow', 'dailyGoals', 'Goal')}
-            </div>
-          </div>
-        </div>
-      </details>
-
-      {/* Life Next Year Section - Collapsed for less prominence */}
-      <details className="mb-4 sm:mb-6">
-        <summary className="cursor-pointer bg-gradient-to-br from-slate-50 to-gray-50 rounded-lg sm:rounded-xl p-4 sm:p-5 border border-slate-200 hover:border-slate-300 transition-all">
-          <h3 className="text-base sm:text-lg font-bold text-slate-700 inline-flex items-center gap-2">
-            <span>🚀</span>
-            Life Next Year (Click to expand)
-          </h3>
-        </summary>
-        <div className="mt-3 bg-gradient-to-br from-emerald-50/50 to-teal-50/50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-emerald-100">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Career</label>
-              <input
-                type="text"
-                value={data.lifeNextYear?.career || ''}
-                onChange={(e) => updateBlueprint({ ...data, lifeNextYear: { ...data.lifeNextYear, career: e.target.value }})}
-                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-slate-300 transition-all"
-                placeholder="Enter career goals..."
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Reading</label>
-              <input
-                type="text"
-                value={data.lifeNextYear?.reading || ''}
-                onChange={(e) => updateBlueprint({ ...data, lifeNextYear: { ...data.lifeNextYear, reading: e.target.value }})}
-                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-slate-300 transition-all"
-                placeholder="Enter reading plans..."
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Training</label>
-              <input
-                type="text"
-                value={data.lifeNextYear?.training || ''}
-                onChange={(e) => updateBlueprint({ ...data, lifeNextYear: { ...data.lifeNextYear, training: e.target.value }})}
-                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-slate-300 transition-all"
-                placeholder="Enter training goals..."
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Activities</label>
-              <input
-                type="text"
-                value={data.lifeNextYear?.activities || ''}
-                onChange={(e) => updateBlueprint({ ...data, lifeNextYear: { ...data.lifeNextYear, activities: e.target.value }})}
-                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-slate-300 transition-all"
-                placeholder="Enter activities..."
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">Travel</label>
-              <input
-                type="text"
-                value={data.lifeNextYear?.travel || ''}
-                onChange={(e) => updateBlueprint({ ...data, lifeNextYear: { ...data.lifeNextYear, travel: e.target.value }})}
-                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent hover:border-slate-300 transition-all"
-                placeholder="Enter travel plans..."
-              />
-            </div>
-          </div>
-        </div>
-      </details>
     </div>
   );
 };
