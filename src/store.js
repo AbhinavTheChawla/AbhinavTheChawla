@@ -173,6 +173,16 @@ const useStore = create((set, get) => ({
     }
   }),
 
+  // Weekly Tracker State
+  weeklyTracker: loadFromStorage('weeklyTracker', {
+    currentWeek: {
+      weekStart: null, // Monday of current week
+      gymSessions: 0,
+      zone2Minutes: 0
+    },
+    history: [] // Array of past weeks: { weekStart, gymSessions, zone2Minutes }
+  }),
+
   // Actions for Wardrobe
   updateCategories: (categories) => {
     set({ categories });
@@ -214,6 +224,12 @@ const useStore = create((set, get) => ({
   updateBlueprint: (blueprintData) => {
     set({ blueprintData });
     saveToStorage('blueprintData', blueprintData);
+  },
+
+  // Actions for Weekly Tracker
+  updateWeeklyTracker: (weeklyTracker) => {
+    set({ weeklyTracker });
+    saveToStorage('weeklyTracker', weeklyTracker);
   },
 
   // Actions for AI Settings
