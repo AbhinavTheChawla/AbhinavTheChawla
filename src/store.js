@@ -144,6 +144,11 @@ const useStore = create((set, get) => ({
 
   // Blueprint State
   blueprintData: loadFromStorage('blueprintData', {
+    dailyMantra: '',
+    dailyMantraDate: '', // Track when the mantra was last set
+    dailyIntentions: '',
+    weeklyIntentions: '',
+    todoContent: '',
     lifeNow: {
       training: 'gym + cardio + diet',
       reading: 'sidequests',
@@ -165,25 +170,6 @@ const useStore = create((set, get) => ({
       training: 'Training',
       activities: 'Poker/Tennis/Golf',
       travel: 'skiing/surfing'
-    },
-    sideHustles: [
-      'early career coaching',
-      'search fund'
-    ],
-    socialMedia: {
-      x: 'FinTwit',
-      tiktok: 'inspo',
-      reddit: 'community forums',
-      ig: 'stories/reels',
-      whatsapp: 'millenial texting',
-      messenger: 'gen Z texting',
-      linkedin: 'engaging with network'
-    },
-    substances: {
-      psychedelics: 'festivals/adventures',
-      caffeine: 'Sustained 4hr energy',
-      pouches: 'Quick 2hr energy',
-      ketamine: 'kill head noise'
     }
   }),
 

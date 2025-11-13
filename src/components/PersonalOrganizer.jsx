@@ -31,7 +31,11 @@ const PersonalOrganizer = () => {
   const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
   const userId = useStore((state) => state.userId);
 
-  const [activeTab, setActiveTab] = useState('blueprint');
+  // Initialize active tab from localStorage or default to 'blueprint'
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedTab = localStorage.getItem('activeTab');
+    return savedTab || 'blueprint';
+  });
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -44,6 +48,11 @@ const PersonalOrganizer = () => {
   // Track if component has mounted to prevent auto-upload on initial load
   const isInitialMount = useRef(true);
   const syncTimeoutRef = useRef(null);
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
 
   // Initialize Supabase on mount if credentials exist
   useEffect(() => {
@@ -484,7 +493,7 @@ const PersonalOrganizer = () => {
         {activeTab === 'wardrobe' && (
           <>
             {/* Add Category Section */}
-            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <div className="mb-3 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3">
               <input
                 type="text"
                 value={newCategoryName}
@@ -508,11 +517,11 @@ const PersonalOrganizer = () => {
             <table className="w-full min-w-max">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
-                  <th className="p-2 sm:p-3 md:p-5 text-left font-semibold text-xs sm:text-sm">Category</th>
+                  <th className="p-1.5 sm:p-3 md:p-5 text-left font-semibold text-xs sm:text-sm">Category</th>
                   {columns.map(col => (
-                    <th key={col} className="p-2 sm:p-3 md:p-5 text-left font-semibold text-xs sm:text-sm">{columnNames[col]}</th>
+                    <th key={col} className="p-1.5 sm:p-3 md:p-5 text-left font-semibold text-xs sm:text-sm">{columnNames[col]}</th>
                   ))}
-                  <th className="p-2 sm:p-3 md:p-5 text-center font-semibold w-16 sm:w-20 text-xs sm:text-sm">Actions</th>
+                  <th className="p-1.5 sm:p-3 md:p-5 text-center font-semibold w-12 sm:w-20 text-xs sm:text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -523,7 +532,7 @@ const PersonalOrganizer = () => {
                       idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'
                     }`}
                   >
-                    <td className="p-2 sm:p-3 md:p-5">
+                    <td className="p-1.5 sm:p-3 md:p-5">
                       <div className="flex items-center gap-2">
                         {editingCategory === category.id ? (
                           <input
@@ -551,8 +560,8 @@ const PersonalOrganizer = () => {
                       const items = wardrobeData[category.id]?.[col] || [];
 
                       return (
-                        <td key={col} className="p-2 sm:p-3 md:p-5">
-                          <div className="space-y-2 sm:space-y-2.5">
+                        <td key={col} className="p-1.5 sm:p-3 md:p-5">
+                          <div className="space-y-1.5 sm:space-y-2.5">
                             {items.map((item, itemIndex) => {
                               const itemKey = `${category.id}-${col}-${itemIndex}`;
                               const isWishlist = wishlist.has(itemKey);
@@ -727,7 +736,7 @@ const PersonalOrganizer = () => {
                         </td>
                       );
                     })}
-                    <td className="p-2 sm:p-3 md:p-5 text-center">
+                    <td className="p-1.5 sm:p-3 md:p-5 text-center">
                       <button
                         onClick={() => deleteCategory(category.id)}
                         className="text-red-500 hover:text-red-700 p-1 sm:p-2 transition-all duration-150 hover:scale-110 rounded-lg hover:bg-red-50"
@@ -742,55 +751,6 @@ const PersonalOrganizer = () => {
             </table>
           </div>
         </div>
-
-            {/* Tips Section */}
-            <div className="mt-4 sm:mt-6 bg-white/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-sm border border-slate-200">
-              <p className="font-semibold text-slate-700 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
-                <span className="text-indigo-600">✨</span> Quick Tips
-              </p>
-              <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-slate-600">
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>Click any item to edit it individually</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>Use the up/down arrows to reorder items within each cell</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>Click the shopping cart icon to mark items you want to buy</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-400 mt-0.5">•</span>
-                  <span><strong>NEW:</strong> Click the image icon (on hover) to add a photo URL, then hover to preview</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>In the Brands column, click the link icon to add website URLs</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>Brand names with URLs become clickable links</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>Hover over items and click the X to delete them</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>Use "Add item" to add new clothing items to each category</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>Click category names to rename them</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400 mt-0.5">•</span>
-                  <span>All changes are automatically saved to your browser</span>
-                </li>
-              </ul>
-            </div>
           </>
         )}
 
