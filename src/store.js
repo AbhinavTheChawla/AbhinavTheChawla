@@ -181,6 +181,7 @@ const useStore = create((set, get) => ({
   dailyReflection: loadFromStorage('dailyReflection', {
     currentDate: null,
     answers: ['', '', '', '', ''], // 5 questions
+    submitted: [false, false, false, false, false], // Track which questions are submitted
     history: [] // Array of past reflections: { date, answers }
   }),
 
@@ -446,6 +447,7 @@ const useStore = create((set, get) => ({
       dailyReflection: loadFromStorage('dailyReflection', {
         currentDate: null,
         answers: ['', '', '', '', ''],
+        submitted: [false, false, false, false, false],
         history: []
       }),
       weightData: loadFromStorage('weightData', {

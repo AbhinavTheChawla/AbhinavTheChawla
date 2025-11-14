@@ -121,11 +121,6 @@ const Blueprint = () => {
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200 p-4 sm:p-6 md:p-8">
-      <div className="mb-4 sm:mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Daily Blueprint</h2>
-        <p className="text-slate-500 mt-1 text-xs sm:text-sm">Your daily landing page • Changes save automatically</p>
-      </div>
-
       {/* Daily Mantra Section */}
       <div className="mb-4 sm:mb-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-purple-100">
         <h3 className="text-lg sm:text-xl font-bold text-purple-900 mb-3 flex items-center gap-2">

@@ -42,6 +42,7 @@ const DailyReflection = () => {
           updateDailyReflection({
             currentDate: today,
             answers: ['', '', '', '', ''],
+            submitted: [false, false, false, false, false],
             history: newHistory
           });
         } else {
@@ -49,14 +50,16 @@ const DailyReflection = () => {
           updateDailyReflection({
             ...dailyReflection,
             currentDate: today,
-            answers: ['', '', '', '', '']
+            answers: ['', '', '', '', ''],
+            submitted: [false, false, false, false, false]
           });
         }
       } else if (!lastDate) {
         // Initialize if not set
         updateDailyReflection({
           ...dailyReflection,
-          currentDate: today
+          currentDate: today,
+          submitted: dailyReflection.submitted || [false, false, false, false, false]
         });
       }
     };
@@ -75,6 +78,17 @@ const DailyReflection = () => {
     updateDailyReflection({
       ...dailyReflection,
       answers: newAnswers
+    });
+  };
+
+  const handleSubmitQuestion = (index) => {
+    // Mark the question as submitted
+    const newSubmitted = [...(dailyReflection.submitted || [false, false, false, false, false])];
+    newSubmitted[index] = true;
+
+    updateDailyReflection({
+      ...dailyReflection,
+      submitted: newSubmitted
     });
   };
 
@@ -106,24 +120,46 @@ const DailyReflection = () => {
       {!showHistory ? (
         <div className="space-y-4">
           <p className="text-xs sm:text-sm text-violet-600 mb-4">
-            Take a moment to reflect on your day. These questions reset daily.
+            Take a moment to reflect on your day. Submit each question when complete.
           </p>
 
-          {questions.map((question, index) => (
-            <div key={index} className="bg-white/60 rounded-lg p-4">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                {index + 1}. {question}
-              </label>
-              <textarea
-                value={dailyReflection.answers[index] || ''}
-                onChange={(e) => handleAnswerChange(index, e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-violet-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent hover:border-violet-300 transition-all resize-none"
-                placeholder="Your reflection..."
-                rows="3"
-                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
-              />
+          {questions.map((question, index) => {
+            const submitted = dailyReflection.submitted?.[index] || false;
+
+            // Don't show submitted questions
+            if (submitted) return null;
+
+            return (
+              <div key={index} className="bg-white/60 rounded-lg p-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  {index + 1}. {question}
+                </label>
+                <textarea
+                  value={dailyReflection.answers[index] || ''}
+                  onChange={(e) => handleAnswerChange(index, e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-violet-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent hover:border-violet-300 transition-all resize-none mb-3"
+                  placeholder="Your reflection..."
+                  rows="3"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
+                />
+                <button
+                  onClick={() => handleSubmitQuestion(index)}
+                  disabled={!dailyReflection.answers[index]?.trim()}
+                  className="w-full sm:w-auto px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  Submit
+                </button>
+              </div>
+            );
+          })}
+
+          {dailyReflection.submitted?.every(s => s) && (
+            <div className="text-center py-8 bg-white/60 rounded-lg border border-violet-200">
+              <span className="text-2xl mb-2 block">✨</span>
+              <p className="text-slate-600 font-medium">All reflections complete for today!</p>
+              <p className="text-slate-400 text-sm mt-1">See you tomorrow</p>
             </div>
-          ))}
+          )}
         </div>
       ) : (
         // History View
