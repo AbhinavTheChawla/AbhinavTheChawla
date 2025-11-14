@@ -16,6 +16,10 @@ import { getSupabase } from './supabaseClient';
  *   wardrobe_image_urls JSONB,
  *   grooming_data JSONB,
  *   blueprint_data JSONB,
+ *   daily_reflection JSONB,
+ *   weekly_tracker JSONB,
+ *   weight_data JSONB,
+ *   food_data JSONB,
  *   todo_notes JSONB,
  *   ai_chat_history JSONB,
  *   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -80,6 +84,10 @@ class SyncService {
         wardrobe_image_urls: JSON.parse(localStorage.getItem('wardrobe_image_urls') || 'null'),
         grooming_data: JSON.parse(localStorage.getItem('groomingData') || 'null'),
         blueprint_data: JSON.parse(localStorage.getItem('blueprintData') || 'null'),
+        daily_reflection: JSON.parse(localStorage.getItem('dailyReflection') || 'null'),
+        weekly_tracker: JSON.parse(localStorage.getItem('weeklyTracker') || 'null'),
+        weight_data: JSON.parse(localStorage.getItem('weightData') || 'null'),
+        food_data: JSON.parse(localStorage.getItem('foodData') || 'null'),
         todo_notes: JSON.parse(localStorage.getItem('todo_notes') || 'null'),
         ai_chat_history: JSON.parse(localStorage.getItem('ai_chat_history') || 'null'),
         updated_at: new Date().toISOString()
@@ -150,6 +158,10 @@ class SyncService {
         hasChanges = this.updateLocalStorageIfChanged('wardrobe_image_urls', data.wardrobe_image_urls) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('groomingData', data.grooming_data) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('blueprintData', data.blueprint_data) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('dailyReflection', data.daily_reflection) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('weeklyTracker', data.weekly_tracker) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('weightData', data.weight_data) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('foodData', data.food_data) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('todo_notes', data.todo_notes) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('ai_chat_history', data.ai_chat_history) || hasChanges;
 
