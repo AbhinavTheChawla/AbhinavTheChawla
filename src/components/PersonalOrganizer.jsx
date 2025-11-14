@@ -18,6 +18,11 @@ const PersonalOrganizer = () => {
   const brandUrls = useStore((state) => state.brandUrls);
   const wishlistUrls = useStore((state) => state.wishlistUrls);
   const blueprintData = useStore((state) => state.blueprintData);
+  const foodData = useStore((state) => state.foodData);
+  const dailyReflection = useStore((state) => state.dailyReflection);
+  const weeklyTracker = useStore((state) => state.weeklyTracker);
+  const weightData = useStore((state) => state.weightData);
+  const groomingData = useStore((state) => state.groomingData);
 
   const updateCategories = useStore((state) => state.updateCategories);
   const updateWardrobe = useStore((state) => state.updateWardrobe);
@@ -146,7 +151,7 @@ const PersonalOrganizer = () => {
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, blueprintData, supabaseUrl, supabaseAnonKey, userId]);
+  }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, blueprintData, foodData, dailyReflection, weeklyTracker, weightData, groomingData, supabaseUrl, supabaseAnonKey, userId]);
 
   // Real-time polling for cross-device sync (check every 10 seconds)
   useEffect(() => {

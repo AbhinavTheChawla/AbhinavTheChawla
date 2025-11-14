@@ -181,6 +181,10 @@ const SyncSettings = ({ isOpen, onClose }) => {
   wardrobe_image_urls JSONB,
   grooming_data JSONB,
   blueprint_data JSONB,
+  daily_reflection JSONB,
+  weekly_tracker JSONB,
+  weight_data JSONB,
+  food_data JSONB,
   todo_notes JSONB,
   ai_chat_history JSONB,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
