@@ -10,6 +10,8 @@ const Food = () => {
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [newRecipeName, setNewRecipeName] = useState('');
   const [newRecipeDescription, setNewRecipeDescription] = useState('');
+  const [newRecipeTag, setNewRecipeTag] = useState('breakfast');
+  const [recipeFilter, setRecipeFilter] = useState('all');
 
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   const dayNames = {
@@ -62,6 +64,13 @@ const Food = () => {
     });
   };
 
+  const clearAllGroceryItems = () => {
+    updateFoodData({
+      ...foodData,
+      groceryList: []
+    });
+  };
+
   // Meal plan handlers
   const updateMeal = (day, meal, value) => {
     updateFoodData({
@@ -92,10 +101,11 @@ const Food = () => {
     if (newRecipeName.trim()) {
       updateFoodData({
         ...foodData,
-        recipes: [...foodData.recipes, { name: newRecipeName, description: newRecipeDescription }]
+        recipes: [...foodData.recipes, { name: newRecipeName, description: newRecipeDescription, tag: newRecipeTag }]
       });
       setNewRecipeName('');
       setNewRecipeDescription('');
+      setNewRecipeTag('breakfast');
     }
   };
 
@@ -119,24 +129,43 @@ const Food = () => {
     });
   };
 
+  // Inspo handler
+  const updateInspo = (value) => {
+    updateFoodData({
+      ...foodData,
+      inspo: value
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Grocery List Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4">Grocery List</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Grocery List</h2>
+          {foodData.groceryList.length > 0 && (
+            <button
+              onClick={clearAllGroceryItems}
+              className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all flex items-center gap-2"
+            >
+              <Trash2 size={16} />
+              Clear All
+            </button>
+          )}
+        </div>
 
         <textarea
           value={groceryInput}
           onChange={(e) => setGroceryInput(e.target.value)}
           onKeyDown={handleGroceryInputKeyDown}
           placeholder="Type grocery items (press Enter to add)..."
-          className="w-full px-4 py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm mb-4 resize-none"
-          rows={3}
+          className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm mb-4 resize-none"
+          rows={1}
         />
 
         <div className="space-y-2">
           {foodData.groceryList.map((item, index) => (
-            <div key={index} className="flex items-center gap-3 group">
+            <div key={index} className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={item.checked}
@@ -148,7 +177,7 @@ const Food = () => {
               </span>
               <button
                 onClick={() => deleteGroceryItem(index)}
-                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-all"
+                className="text-red-500 hover:text-red-700 transition-all"
               >
                 <X size={16} />
               </button>
@@ -206,6 +235,18 @@ const Food = () => {
         </div>
       </div>
 
+      {/* Inspo Section */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4">Inspo</h2>
+        <textarea
+          value={foodData.inspo || ''}
+          onChange={(e) => updateInspo(e.target.value)}
+          placeholder="Ideas, things to try, notes..."
+          className="w-full px-4 py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm resize-none"
+          rows={6}
+        />
+      </div>
+
       {/* Recipe Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
         <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4">Recipes</h2>
@@ -226,6 +267,14 @@ const Food = () => {
             className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm resize-none"
             rows={3}
           />
+          <select
+            value={newRecipeTag}
+            onChange={(e) => setNewRecipeTag(e.target.value)}
+            className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm"
+          >
+            <option value="breakfast">Breakfast</option>
+            <option value="dinner">Dinner</option>
+          </select>
           <button
             onClick={addRecipe}
             className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-sm rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all flex items-center gap-2"
@@ -235,37 +284,93 @@ const Food = () => {
           </button>
         </div>
 
-        <div className="space-y-2">
-          {foodData.recipes.map((recipe, index) => (
-            <div key={index} className="border border-slate-200 rounded-lg p-3 hover:bg-indigo-50/30 transition-colors">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setExpandedRecipe(expandedRecipe === index ? null : index)}
-                  className="flex-1 text-left font-semibold text-indigo-600 hover:text-indigo-800 transition-colors text-sm"
-                >
-                  {recipe.name}
-                </button>
-                <button
-                  onClick={() => deleteRecipe(index)}
-                  className="text-red-500 hover:text-red-700 transition-all ml-2"
-                >
-                  <X size={16} />
-                </button>
-              </div>
+        {/* Filter buttons */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setRecipeFilter('all')}
+            className={`px-4 py-2 text-sm rounded-lg transition-all ${
+              recipeFilter === 'all'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setRecipeFilter('breakfast')}
+            className={`px-4 py-2 text-sm rounded-lg transition-all ${
+              recipeFilter === 'breakfast'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+            }`}
+          >
+            Breakfast
+          </button>
+          <button
+            onClick={() => setRecipeFilter('dinner')}
+            className={`px-4 py-2 text-sm rounded-lg transition-all ${
+              recipeFilter === 'dinner'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+            }`}
+          >
+            Dinner
+          </button>
+        </div>
 
-              {expandedRecipe === index && (
-                <div className="mt-3 pt-3 border-t border-slate-200">
-                  <textarea
-                    value={recipe.description}
-                    onChange={(e) => updateRecipe(index, 'description', e.target.value)}
-                    placeholder="Add recipe description..."
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white resize-none"
-                    rows={5}
-                  />
+        <div className="space-y-2">
+          {foodData.recipes.map((recipe, index) => {
+            // Skip if filtered out
+            if (recipeFilter !== 'all' && recipe.tag !== recipeFilter) return null;
+
+            return (
+              <div key={index} className="border border-slate-200 rounded-lg p-3 hover:bg-indigo-50/30 transition-colors">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1">
+                    <button
+                      onClick={() => setExpandedRecipe(expandedRecipe === index ? null : index)}
+                      className="text-left font-semibold text-indigo-600 hover:text-indigo-800 transition-colors text-sm"
+                    >
+                      {recipe.name}
+                    </button>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                      recipe.tag === 'breakfast'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {recipe.tag === 'breakfast' ? 'Breakfast' : 'Dinner'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => deleteRecipe(index)}
+                    className="text-red-500 hover:text-red-700 transition-all"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {expandedRecipe === index && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                    <select
+                      value={recipe.tag || 'breakfast'}
+                      onChange={(e) => updateRecipe(index, 'tag', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                    >
+                      <option value="breakfast">Breakfast</option>
+                      <option value="dinner">Dinner</option>
+                    </select>
+                    <textarea
+                      value={recipe.description}
+                      onChange={(e) => updateRecipe(index, 'description', e.target.value)}
+                      placeholder="Add recipe description..."
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white resize-none"
+                      rows={5}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

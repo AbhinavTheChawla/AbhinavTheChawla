@@ -201,7 +201,8 @@ const useStore = create((set, get) => ({
       saturday: { breakfast: '', lunch: '', dinner: '', snack: '' },
       sunday: { breakfast: '', lunch: '', dinner: '', snack: '' }
     },
-    recipes: [] // Array of recipes: { name, description }
+    recipes: [], // Array of recipes: { name, description, tag }
+    inspo: '' // Inspo notepad for meal ideas
   }),
 
   // Actions for Wardrobe
