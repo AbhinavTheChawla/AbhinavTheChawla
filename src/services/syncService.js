@@ -41,6 +41,27 @@ class SyncService {
   }
 
   /**
+   * Helper to check if data is "empty" (null, undefined, or object/array with no meaningful content)
+   */
+  isEmptyData(value) {
+    if (!value) return true;
+    if (typeof value === 'object') {
+      if (Array.isArray(value)) {
+        return value.length === 0;
+      }
+      // Check if object has any non-empty values
+      return Object.values(value).every(v => {
+        if (!v) return true;
+        if (typeof v === 'string') return v.trim() === '';
+        if (typeof v === 'object') return this.isEmptyData(v);
+        return false;
+      });
+    }
+    if (typeof value === 'string') return value.trim() === '';
+    return false;
+  }
+
+  /**
    * Helper to update localStorage only if data has changed
    * Returns true if data was updated, false otherwise
    */
@@ -50,7 +71,26 @@ class SyncService {
     const currentData = localStorage.getItem(key);
     const newData = JSON.stringify(newValue);
 
+    // If data is the same, no update needed
     if (currentData !== newData) {
+      // Extra protection: don't overwrite non-empty local data with empty remote data
+      if (currentData) {
+        try {
+          const currentObj = JSON.parse(currentData);
+          const isCurrentEmpty = this.isEmptyData(currentObj);
+          const isNewEmpty = this.isEmptyData(newValue);
+
+          // If local has content but remote is empty, keep local data
+          if (!isCurrentEmpty && isNewEmpty) {
+            console.log(`🛡️ Protecting local data for ${key} - remote data is empty`);
+            return false;
+          }
+        } catch (e) {
+          // If parsing fails, proceed with update
+          console.warn(`Failed to parse local data for ${key}:`, e);
+        }
+      }
+
       localStorage.setItem(key, newData);
       return true;
     }
