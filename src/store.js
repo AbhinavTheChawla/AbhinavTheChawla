@@ -189,6 +189,21 @@ const useStore = create((set, get) => ({
     entries: [] // Array of weight entries: { date, weight }
   }),
 
+  // Food Planner State
+  foodData: loadFromStorage('foodData', {
+    groceryList: [], // Array of grocery items: { text, checked }
+    mealPlan: {
+      monday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+      tuesday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+      wednesday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+      thursday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+      friday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+      saturday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+      sunday: { breakfast: '', lunch: '', dinner: '', snack: '' }
+    },
+    recipes: [] // Array of recipes: { name, description }
+  }),
+
   // Actions for Wardrobe
   updateCategories: (categories) => {
     set({ categories });
@@ -248,6 +263,12 @@ const useStore = create((set, get) => ({
   updateWeightData: (weightData) => {
     set({ weightData });
     saveToStorage('weightData', weightData);
+  },
+
+  // Actions for Food Planner
+  updateFoodData: (foodData) => {
+    set({ foodData });
+    saveToStorage('foodData', foodData);
   },
 
   // Actions for AI Settings
@@ -428,6 +449,19 @@ const useStore = create((set, get) => ({
       }),
       weightData: loadFromStorage('weightData', {
         entries: []
+      }),
+      foodData: loadFromStorage('foodData', {
+        groceryList: [],
+        mealPlan: {
+          monday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+          tuesday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+          wednesday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+          thursday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+          friday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+          saturday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+          sunday: { breakfast: '', lunch: '', dinner: '', snack: '' }
+        },
+        recipes: []
       })
     });
   }
