@@ -506,11 +506,10 @@ const PersonalOrganizer = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
-                  <th className="p-1 sm:p-2 md:p-3 text-left font-semibold text-xs sm:text-sm">Category</th>
+                  <th className="p-1 sm:p-2 md:p-3 text-left font-semibold text-xs sm:text-sm w-1/6">Category</th>
                   {columns.map(col => (
-                    <th key={col} className="p-1 sm:p-2 md:p-3 text-left font-semibold text-xs sm:text-sm">{columnNames[col]}</th>
+                    <th key={col} className="p-1 sm:p-2 md:p-3 text-left font-semibold text-xs sm:text-sm w-1/6">{columnNames[col]}</th>
                   ))}
-                  <th className="p-1 sm:p-2 md:p-3 text-center font-semibold w-12 sm:w-16 text-xs sm:text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -550,7 +549,7 @@ const PersonalOrganizer = () => {
 
                       return (
                         <td key={col} className="p-1 sm:p-2 md:p-3">
-                          <div className="space-y-1.5 sm:space-y-2.5">
+                          <div className="space-y-1 sm:space-y-1.5">
                             {items.map((item, itemIndex) => {
                               const itemKey = `${category.id}-${col}-${itemIndex}`;
                               const isWishlist = wishlist.has(itemKey);
@@ -694,24 +693,15 @@ const PersonalOrganizer = () => {
                             )}
                             <button
                               onClick={() => addItem(category.id, col)}
-                              className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-medium transition-colors duration-150 hover:gap-2"
+                              className="text-[10px] sm:text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-medium transition-colors duration-150 hover:gap-2"
                             >
-                              <Plus size={12} className="sm:w-3.5 sm:h-3.5" />
+                              <Plus size={10} className="sm:w-3 sm:h-3" />
                               Add item
                             </button>
                           </div>
                         </td>
                       );
                     })}
-                    <td className="p-1 sm:p-2 md:p-3 text-center">
-                      <button
-                        onClick={() => deleteCategory(category.id)}
-                        className="text-red-500 hover:text-red-700 p-1 sm:p-2 transition-all duration-150 hover:scale-110 rounded-lg hover:bg-red-50"
-                        title="Delete category"
-                      >
-                        <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
