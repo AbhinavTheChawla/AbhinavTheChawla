@@ -20,10 +20,9 @@ const GroomingJournal = () => {
   };
 
   const addRow = (category) => {
-    const isWishlist = category === 'wishlist';
     const newData = {
       ...data,
-      [category]: [...data[category], isWishlist ? ['', '', 'Medium'] : ['', '']]
+      [category]: [...data[category], ['', '']]
     };
     updateGrooming(newData);
   };
@@ -36,7 +35,7 @@ const GroomingJournal = () => {
     updateGrooming(newData);
   };
 
-  const renderTable = (category, title, emoji, hasNumbers = false, isWishlist = false) => {
+  const renderTable = (category, title, emoji, hasNumbers = false) => {
     const rows = data[category] || [];
 
     return (
@@ -52,7 +51,6 @@ const GroomingJournal = () => {
                 {hasNumbers && <th className="p-2 sm:p-3 text-left text-xs font-semibold text-slate-500 w-8 sm:w-12">#</th>}
                 <th className="p-2 sm:p-3 text-left text-xs font-semibold text-slate-500">Product</th>
                 <th className="p-2 sm:p-3 text-left text-xs font-semibold text-slate-500">Details</th>
-                {isWishlist && <th className="p-2 sm:p-3 text-left text-xs font-semibold text-slate-500 w-24 sm:w-32">Priority</th>}
                 <th className="p-2 sm:p-3 text-center text-xs font-semibold text-slate-500 w-12 sm:w-16"></th>
               </tr>
             </thead>
@@ -80,17 +78,6 @@ const GroomingJournal = () => {
                       placeholder="Enter details..."
                     />
                   </td>
-                  {isWishlist && (
-                    <td className="p-2 sm:p-3">
-                      <input
-                        type="text"
-                        value={row[2]}
-                        onChange={(e) => updateCell(category, i, 2, e.target.value)}
-                        className="w-full border border-transparent hover:border-slate-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 bg-amber-50 rounded px-2 py-1 sm:py-1.5 text-xs sm:text-sm transition-all"
-                        placeholder="Priority..."
-                      />
-                    </td>
-                  )}
                   <td className="p-2 sm:p-3 text-center">
                     <button
                       onClick={() => deleteRow(category, i)}
@@ -110,7 +97,7 @@ const GroomingJournal = () => {
           className="mt-2 text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1 transition-colors"
         >
           <Plus size={12} className="sm:w-3.5 sm:h-3.5" />
-          Add {isWishlist ? 'Wishlist Item' : title === 'AM Routine' || title === 'PM Routine' ? 'Step' : 'Item'}
+          Add {title === 'AM Routine' || title === 'PM Routine' ? 'Step' : 'Item'}
         </button>
       </div>
     );
@@ -132,8 +119,13 @@ const GroomingJournal = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8">
-        {renderTable('supplementary', 'Supplementary Skincare', '🧴')}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+        <div>
+          {renderTable('shaving', 'Shaving', '✂️')}
+        </div>
+        <div>
+          {renderTable('hair', 'Hair', '💇')}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
@@ -143,19 +135,6 @@ const GroomingJournal = () => {
         <div>
           {renderTable('supplements', 'Supplements', '💊')}
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-        <div>
-          {renderTable('shaving', 'Shaving/Laser Hair Plan', '✂️')}
-        </div>
-        <div>
-          {renderTable('hair', 'Hair', '💇')}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8">
-        {renderTable('wishlist', 'Wishlist', '⭐', false, true)}
       </div>
     </div>
   );

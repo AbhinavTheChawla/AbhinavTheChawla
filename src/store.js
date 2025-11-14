@@ -104,18 +104,6 @@ const useStore = create((set, get) => ({
       ['Retinol Serum', 'The Ordinary Retinol 0.5%'],
       ['Night Cream', 'Neutrogena Hydro Boost Night']
     ],
-    supplementary: [],
-    perfumes: [
-      ['Daily: Bleu de Chanel', 'Woody aromatic'],
-      ['Evening: Dior Sauvage', 'Fresh spicy'],
-      ['Summer: Acqua di Gio', 'Aquatic citrus']
-    ],
-    supplements: [
-      ['Morning: Multivitamin', 'Garden of Life Men\'s Multi'],
-      ['Morning: Vitamin D3', '5000 IU'],
-      ['Morning: Omega-3', 'Nordic Naturals - 2 caps'],
-      ['Evening: Magnesium', '400mg before bed']
-    ],
     shaving: [
       ['Face: Wet Shave', 'Every other day - Safety razor'],
       ['Body: Trimmer', 'Weekly - Guard #2'],
@@ -127,10 +115,16 @@ const useStore = create((set, get) => ({
       ['Hair Oil', 'Moroccanoil - 1-2 pumps'],
       ['Styling', 'Baxter Clay Pomade']
     ],
-    wishlist: [
-      ['Drunk Elephant C-Firma', '$80', 'High'],
-      ['Le Labo Santal 33', '$285', 'High'],
-      ['Dyson Supersonic', '$430', 'Medium']
+    perfumes: [
+      ['Daily: Bleu de Chanel', 'Woody aromatic'],
+      ['Evening: Dior Sauvage', 'Fresh spicy'],
+      ['Summer: Acqua di Gio', 'Aquatic citrus']
+    ],
+    supplements: [
+      ['Morning: Multivitamin', 'Garden of Life Men\'s Multi'],
+      ['Morning: Vitamin D3', '5000 IU'],
+      ['Morning: Omega-3', 'Nordic Naturals - 2 caps'],
+      ['Evening: Magnesium', '400mg before bed']
     ]
   }),
 
@@ -367,18 +361,6 @@ const useStore = create((set, get) => ({
           ['Retinol Serum', 'The Ordinary Retinol 0.5%'],
           ['Night Cream', 'Neutrogena Hydro Boost Night']
         ],
-        supplementary: [],
-        perfumes: [
-          ['Daily: Bleu de Chanel', 'Woody aromatic'],
-          ['Evening: Dior Sauvage', 'Fresh spicy'],
-          ['Summer: Acqua di Gio', 'Aquatic citrus']
-        ],
-        supplements: [
-          ['Morning: Multivitamin', 'Garden of Life Men\'s Multi'],
-          ['Morning: Vitamin D3', '5000 IU'],
-          ['Morning: Omega-3', 'Nordic Naturals - 2 caps'],
-          ['Evening: Magnesium', '400mg before bed']
-        ],
         shaving: [
           ['Face: Wet Shave', 'Every other day - Safety razor'],
           ['Body: Trimmer', 'Weekly - Guard #2'],
@@ -390,10 +372,16 @@ const useStore = create((set, get) => ({
           ['Hair Oil', 'Moroccanoil - 1-2 pumps'],
           ['Styling', 'Baxter Clay Pomade']
         ],
-        wishlist: [
-          ['Drunk Elephant C-Firma', '$80', 'High'],
-          ['Le Labo Santal 33', '$285', 'High'],
-          ['Dyson Supersonic', '$430', 'Medium']
+        perfumes: [
+          ['Daily: Bleu de Chanel', 'Woody aromatic'],
+          ['Evening: Dior Sauvage', 'Fresh spicy'],
+          ['Summer: Acqua di Gio', 'Aquatic citrus']
+        ],
+        supplements: [
+          ['Morning: Multivitamin', 'Garden of Life Men\'s Multi'],
+          ['Morning: Vitamin D3', '5000 IU'],
+          ['Morning: Omega-3', 'Nordic Naturals - 2 caps'],
+          ['Evening: Magnesium', '400mg before bed']
         ]
       }),
       blueprintData: loadFromStorage('blueprintData', {
