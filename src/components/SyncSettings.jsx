@@ -1,49 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Cloud, CloudOff, RefreshCw, X, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Cloud, CloudOff, RefreshCw, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import useStore from '../store';
-import { initializeSupabase } from '../services/supabaseClient';
 import { syncService } from '../services/syncService';
+import { isSupabaseConfigured } from '../config/supabase.config';
 
 const SyncSettings = ({ isOpen, onClose }) => {
   const supabaseUrl = useStore((state) => state.supabaseUrl);
   const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
   const userId = useStore((state) => state.userId);
-  const updateSupabaseSettings = useStore((state) => state.updateSupabaseSettings);
   const reloadFromStorage = useStore((state) => state.reloadFromStorage);
 
-  const [tempUrl, setTempUrl] = useState('');
-  const [tempAnonKey, setTempAnonKey] = useState('');
-  const [tempUserId, setTempUserId] = useState('');
-  const [showAnonKey, setShowAnonKey] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
   const [syncMessage, setSyncMessage] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      setTempUrl(supabaseUrl);
-      setTempAnonKey(supabaseAnonKey);
-      setTempUserId(userId || `user_${Date.now()}`);
-    }
-  }, [isOpen, supabaseUrl, supabaseAnonKey, userId]);
-
-  const handleSave = () => {
-    if (!tempUrl || !tempAnonKey || !tempUserId) {
-      setSyncStatus('error');
-      setSyncMessage('Please fill in all fields');
-      return;
-    }
-
-    updateSupabaseSettings(tempUrl, tempAnonKey, tempUserId);
-    initializeSupabase(tempUrl, tempAnonKey);
-    setSyncStatus('success');
-    setSyncMessage('Settings saved! You can now sync your data.');
-  };
+  const isConfigured = Boolean(supabaseUrl && supabaseAnonKey && userId);
+  const isAutoConfigured = isSupabaseConfigured();
 
   const handleSync = async () => {
-    if (!supabaseUrl || !supabaseAnonKey || !userId) {
+    if (!isConfigured) {
       setSyncStatus('error');
-      setSyncMessage('Please configure Supabase settings first');
+      setSyncMessage('Supabase not configured. Please set up credentials in .env file.');
       return;
     }
 
@@ -56,7 +33,6 @@ const SyncSettings = ({ isOpen, onClose }) => {
 
       if (result.success) {
         if (result.hasChanges) {
-          // Reload state from localStorage instead of refreshing the page
           reloadFromStorage();
           setSyncStatus('success');
           setSyncMessage('✅ Sync completed! Data updated.');
@@ -74,9 +50,9 @@ const SyncSettings = ({ isOpen, onClose }) => {
   };
 
   const handleUpload = async () => {
-    if (!supabaseUrl || !supabaseAnonKey || !userId) {
+    if (!isConfigured) {
       setSyncStatus('error');
-      setSyncMessage('Please configure Supabase settings first');
+      setSyncMessage('Supabase not configured. Please set up credentials in .env file.');
       return;
     }
 
@@ -97,9 +73,9 @@ const SyncSettings = ({ isOpen, onClose }) => {
   };
 
   const handleDownload = async () => {
-    if (!supabaseUrl || !supabaseAnonKey || !userId) {
+    if (!isConfigured) {
       setSyncStatus('error');
-      setSyncMessage('Please configure Supabase settings first');
+      setSyncMessage('Supabase not configured. Please set up credentials in .env file.');
       return;
     }
 
@@ -111,14 +87,12 @@ const SyncSettings = ({ isOpen, onClose }) => {
       const result = await syncService.downloadData(userId);
 
       if (result.success) {
-        setSyncStatus('success');
-        if (result.firstSync) {
-          setSyncMessage('No remote data found. Use "Upload" to backup your local data.');
-        } else if (result.hasChanges) {
-          // Reload state from localStorage instead of refreshing the page
+        if (result.hasChanges) {
           reloadFromStorage();
+          setSyncStatus('success');
           setSyncMessage('✅ Download completed! Data updated.');
         } else {
+          setSyncStatus('success');
           setSyncMessage('✅ Download completed! Already up to date.');
         }
       }
@@ -138,7 +112,7 @@ const SyncSettings = ({ isOpen, onClose }) => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Cloud className="text-blue-600" size={24} />
-            <h3 className="text-xl font-bold text-slate-800">Cloud Sync Settings</h3>
+            <h3 className="text-xl font-bold text-slate-800">Cloud Sync</h3>
           </div>
           <button
             onClick={onClose}
@@ -148,26 +122,73 @@ const SyncSettings = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h4 className="font-semibold text-blue-900 mb-2 text-sm">How to set up sync:</h4>
-          <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
-            <li>Create a free account at <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline">supabase.com</a></li>
-            <li>Create a new project</li>
-            <li>Go to Settings → API to find your URL and anon key</li>
-            <li>In SQL Editor, run the schema from the setup guide below</li>
-            <li>Enter your credentials here and click Save</li>
-          </ol>
+        {/* Status Card */}
+        <div className={`rounded-lg p-4 mb-6 border-2 ${
+          isConfigured
+            ? 'bg-green-50 border-green-200'
+            : 'bg-yellow-50 border-yellow-200'
+        }`}>
+          <div className="flex items-center gap-3 mb-3">
+            {isConfigured ? (
+              <CheckCircle className="text-green-600" size={24} />
+            ) : (
+              <AlertCircle className="text-yellow-600" size={24} />
+            )}
+            <div>
+              <h4 className="font-semibold text-slate-800 text-sm">
+                {isConfigured ? '✅ Sync Configured' : '⚠️ Sync Not Configured'}
+              </h4>
+              <p className="text-xs text-slate-600 mt-1">
+                {isConfigured
+                  ? `Syncing as user: ${userId}`
+                  : 'Sync is not configured. Add credentials to .env file.'
+                }
+              </p>
+            </div>
+          </div>
+
+          {isAutoConfigured && (
+            <div className="flex items-start gap-2 bg-white/50 rounded p-2 text-xs">
+              <Info size={14} className="text-blue-600 flex-shrink-0 mt-0.5" />
+              <span className="text-slate-700">
+                Auto-configured from environment variables. All devices will sync automatically.
+              </span>
+            </div>
+          )}
         </div>
+
+        {/* Setup Instructions (only show if not configured) */}
+        {!isConfigured && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-blue-900 mb-3 text-sm">Quick Setup:</h4>
+            <ol className="text-xs text-blue-800 space-y-2 list-decimal list-inside">
+              <li>
+                Create a <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Supabase</a> account (free)
+              </li>
+              <li>Create a new project</li>
+              <li>Go to Settings → API and copy your URL and anon key</li>
+              <li>
+                Create a <code className="bg-blue-100 px-1 rounded">.env</code> file in your project root with:
+                <pre className="bg-slate-900 text-green-400 p-2 rounded mt-1 text-xs overflow-x-auto">
+{`REACT_APP_SUPABASE_URL=your_url
+REACT_APP_SUPABASE_ANON_KEY=your_key
+REACT_APP_USER_ID=my_user_id`}
+                </pre>
+              </li>
+              <li>Run the database setup SQL (see below)</li>
+              <li>Restart your development server</li>
+            </ol>
+          </div>
+        )}
 
         {/* Database Schema */}
         <details className="mb-6 bg-slate-50 rounded-lg p-4">
-          <summary className="font-semibold text-slate-700 cursor-pointer text-sm">
-            📋 Database Setup Guide (Click to expand)
+          <summary className="font-semibold text-slate-700 cursor-pointer text-sm flex items-center gap-2">
+            📋 Database Setup SQL
           </summary>
           <div className="mt-3">
             <p className="text-xs text-slate-600 mb-2">
-              Run this SQL in your Supabase SQL Editor:
+              Run this in your Supabase SQL Editor (one time setup):
             </p>
             <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs overflow-x-auto">
 {`CREATE TABLE user_data (
@@ -181,140 +202,77 @@ const SyncSettings = ({ isOpen, onClose }) => {
   wardrobe_image_urls JSONB,
   grooming_data JSONB,
   blueprint_data JSONB,
+  daily_reflection JSONB,
+  weekly_tracker JSONB,
+  weight_data JSONB,
+  food_data JSONB,
   todo_notes JSONB,
   ai_chat_history JSONB,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX idx_user_data_user_id ON user_data(user_id);
-
 ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow all operations" ON user_data
-  FOR ALL USING (true);`}
+CREATE POLICY "Allow all operations" ON user_data FOR ALL USING (true);`}
             </pre>
           </div>
         </details>
 
-        {/* Settings Form */}
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Supabase URL
-            </label>
-            <input
-              type="text"
-              value={tempUrl}
-              onChange={(e) => setTempUrl(e.target.value)}
-              placeholder="https://xxxxx.supabase.co"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Supabase Anon Key
-            </label>
-            <div className="relative">
-              <input
-                type={showAnonKey ? 'text' : 'password'}
-                value={tempAnonKey}
-                onChange={(e) => setTempAnonKey(e.target.value)}
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowAnonKey(!showAnonKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showAnonKey ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              User ID (Keep the same across devices)
-            </label>
-            <input
-              type="text"
-              value={tempUserId}
-              onChange={(e) => setTempUserId(e.target.value)}
-              placeholder="user_12345"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              Use the same User ID on all your devices to sync data between them
-            </p>
-          </div>
-
-          <button
-            onClick={handleSave}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium text-sm"
-          >
-            Save Settings
-          </button>
-        </div>
-
-        {/* Sync Actions */}
-        {supabaseUrl && supabaseAnonKey && userId && (
-          <div className="border-t border-slate-200 pt-6">
-            <h4 className="font-semibold text-slate-700 mb-4 text-sm">Sync Actions</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Sync Controls */}
+        {isConfigured && (
+          <>
+            <div className="space-y-3 mb-6">
               <button
                 onClick={handleSync}
                 disabled={isSyncing}
-                className="px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
-                <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
-                Full Sync
+                <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
+                Full Sync (Download + Upload)
               </button>
-              <button
-                onClick={handleUpload}
-                disabled={isSyncing}
-                className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
-              >
-                <Cloud size={16} />
-                Upload
-              </button>
-              <button
-                onClick={handleDownload}
-                disabled={isSyncing}
-                className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
-              >
-                <CloudOff size={16} />
-                Download
-              </button>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleUpload}
+                  disabled={isSyncing}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-slate-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  <Cloud size={16} />
+                  Upload to Cloud
+                </button>
+                <button
+                  onClick={handleDownload}
+                  disabled={isSyncing}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  <CloudOff size={16} />
+                  Download from Cloud
+                </button>
+              </div>
             </div>
 
-            <div className="mt-3 text-xs text-slate-600 bg-slate-50 rounded-lg p-3">
-              <p><strong>Full Sync:</strong> Downloads then uploads (recommended for keeping data in sync)</p>
-              <p><strong>Upload:</strong> Push local data to cloud</p>
-              <p><strong>Download:</strong> Pull cloud data to this device</p>
-            </div>
-          </div>
-        )}
-
-        {/* Status Message */}
-        {syncMessage && (
-          <div className={`mt-4 p-3 rounded-lg text-sm flex items-center gap-2 ${
-            syncStatus === 'success'
-              ? 'bg-green-50 border border-green-200 text-green-800'
-              : syncStatus === 'error'
-              ? 'bg-red-50 border border-red-200 text-red-800'
-              : 'bg-blue-50 border border-blue-200 text-blue-800'
-          }`}>
-            {syncStatus === 'success' ? (
-              <CheckCircle size={16} />
-            ) : syncStatus === 'error' ? (
-              <AlertCircle size={16} />
-            ) : (
-              <RefreshCw size={16} className="animate-spin" />
+            {/* Status Message */}
+            {syncMessage && (
+              <div className={`rounded-lg p-3 text-sm ${
+                syncStatus === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+                syncStatus === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+                'bg-blue-50 text-blue-800 border border-blue-200'
+              }`}>
+                {syncMessage}
+              </div>
             )}
-            {syncMessage}
-          </div>
+          </>
         )}
+
+        {/* Info Footer */}
+        <div className="mt-6 pt-4 border-t border-slate-200">
+          <p className="text-xs text-slate-500 text-center">
+            {isConfigured
+              ? '💡 Changes are automatically synced every 2 seconds when you make edits'
+              : '💡 Once configured, all your devices will sync automatically'
+            }
+          </p>
+        </div>
       </div>
     </div>
   );

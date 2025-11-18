@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { SUPABASE_CONFIG } from './config/supabase.config';
 
 // Helper to load from localStorage
 const loadFromStorage = (key, defaultValue) => {
@@ -18,6 +19,25 @@ const saveToStorage = (key, value) => {
   } catch (error) {
     console.error(`Error saving ${key} to storage:`, error);
   }
+};
+
+// Initialize Supabase credentials from config or localStorage
+const initializeSupabaseCredentials = () => {
+  // If config has values, use those (takes precedence)
+  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) {
+    return {
+      url: SUPABASE_CONFIG.url,
+      anonKey: SUPABASE_CONFIG.anonKey,
+      userId: SUPABASE_CONFIG.defaultUserId
+    };
+  }
+
+  // Otherwise, load from localStorage (for backwards compatibility)
+  return {
+    url: loadFromStorage('supabase_url', ''),
+    anonKey: loadFromStorage('supabase_anon_key', ''),
+    userId: loadFromStorage('user_id', '')
+  };
 };
 
 // Create Zustand store
@@ -131,10 +151,15 @@ const useStore = create((set, get) => ({
   // AI Settings
   claudeApiKey: loadFromStorage('claude_api_key', ''),
 
-  // Supabase Settings
-  supabaseUrl: loadFromStorage('supabase_url', ''),
-  supabaseAnonKey: loadFromStorage('supabase_anon_key', ''),
-  userId: loadFromStorage('user_id', ''),
+  // Supabase Settings - Auto-initialize from config or localStorage
+  ...(() => {
+    const { url, anonKey, userId } = initializeSupabaseCredentials();
+    return {
+      supabaseUrl: url,
+      supabaseAnonKey: anonKey,
+      userId: userId
+    };
+  })(),
 
   // Blueprint State
   blueprintData: loadFromStorage('blueprintData', {
