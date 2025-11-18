@@ -132,6 +132,21 @@ REACT_APP_USER_ID=my_unique_id
 - For better security, you can customize RLS policies in Supabase
 - All data is stored in your own Supabase project (not shared with anyone)
 
+## Updating Your Database (If Sync is Partially Working)
+
+If some tabs sync but others don't (e.g., grocery list or meal planner not syncing), your database table might be missing some columns. This happens if you created your database before all features were added.
+
+**To fix this:**
+
+1. Go to your Supabase project → **SQL Editor**
+2. Click "+ New query"
+3. Copy and paste the contents of `database_migration.sql` from this repository
+4. Click **Run**
+5. You should see messages like "Added food_data column"
+6. Restart your app on all devices
+
+The migration script is safe to run multiple times - it only adds columns that don't exist.
+
 ## Need Help?
 
 - Check the [Supabase Documentation](https://supabase.com/docs)
