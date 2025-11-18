@@ -91,3 +91,14 @@ All synced data is stored in the `user_data` table with these columns:
 2. **Debounced Upload**: After 2 seconds, changes are uploaded to Supabase
 3. **Polling Download**: Every 10 seconds, the app checks for changes from other devices
 4. **Smart Merge**: Only changed data triggers UI updates (no unnecessary re-renders)
+
+## When New Features Are Added
+
+When new features are added that require database columns:
+
+1. **Pull the latest code** from the repository
+2. **Check `database_migration.sql`** - it will be updated with the new column checks
+3. **Run the migration script** in Supabase SQL Editor
+4. The script safely adds only the new columns (keeps existing data intact)
+
+The migration script is designed to be re-run anytime - it's your database "update tool" for this project.
