@@ -4,8 +4,19 @@ import useStore from '../store';
 const WeeklyTracker = () => {
   const weeklyTracker = useStore((state) => state.weeklyTracker);
   const updateWeeklyTracker = useStore((state) => state.updateWeeklyTracker);
+  const reloadFromStorage = useStore((state) => state.reloadFromStorage);
   const [showHistory, setShowHistory] = useState(false);
   const [zone2Input, setZone2Input] = useState('');
+
+  // Listen for cross-device sync events
+  useEffect(() => {
+    const handleSync = () => {
+      reloadFromStorage();
+    };
+
+    window.addEventListener('supabase-sync-complete', handleSync);
+    return () => window.removeEventListener('supabase-sync-complete', handleSync);
+  }, [reloadFromStorage]);
 
   // Get Monday of current week
   const getMondayOfWeek = (date = new Date()) => {

@@ -464,7 +464,8 @@ const useStore = create((set, get) => ({
           saturday: { breakfast: '', lunch: '', dinner: '', snack: '' },
           sunday: { breakfast: '', lunch: '', dinner: '', snack: '' }
         },
-        recipes: []
+        recipes: [],
+        inspo: ''
       })
     });
   }

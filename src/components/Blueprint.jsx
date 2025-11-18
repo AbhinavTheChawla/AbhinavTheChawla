@@ -1,12 +1,22 @@
 import React, { useEffect } from 'react';
 import useStore from '../store';
-import WeeklyTracker from './WeeklyTracker';
 import DailyReflection from './DailyReflection';
 
 const Blueprint = () => {
   // Get state and actions from Zustand store
   const data = useStore((state) => state.blueprintData);
   const updateBlueprint = useStore((state) => state.updateBlueprint);
+  const reloadFromStorage = useStore((state) => state.reloadFromStorage);
+
+  // Listen for cross-device sync events
+  useEffect(() => {
+    const handleSync = () => {
+      reloadFromStorage();
+    };
+
+    window.addEventListener('supabase-sync-complete', handleSync);
+    return () => window.removeEventListener('supabase-sync-complete', handleSync);
+  }, [reloadFromStorage]);
 
   // Check if daily mantra needs to be reset
   useEffect(() => {
@@ -171,9 +181,6 @@ const Blueprint = () => {
 
       {/* Daily Reflection Section */}
       <DailyReflection />
-
-      {/* Weekly Tracker Section */}
-      <WeeklyTracker />
     </div>
   );
 };

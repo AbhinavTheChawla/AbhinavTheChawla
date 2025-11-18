@@ -4,7 +4,18 @@ import useStore from '../store';
 const DailyReflection = () => {
   const dailyReflection = useStore((state) => state.dailyReflection);
   const updateDailyReflection = useStore((state) => state.updateDailyReflection);
+  const reloadFromStorage = useStore((state) => state.reloadFromStorage);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Listen for cross-device sync events
+  useEffect(() => {
+    const handleSync = () => {
+      reloadFromStorage();
+    };
+
+    window.addEventListener('supabase-sync-complete', handleSync);
+    return () => window.removeEventListener('supabase-sync-complete', handleSync);
+  }, [reloadFromStorage]);
 
   const questions = [
     "What mission did you progress?",
