@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X, Trash2 } from 'lucide-react';
 import useStore from '../store';
 
 const Food = () => {
   const foodData = useStore((state) => state.foodData);
   const updateFoodData = useStore((state) => state.updateFoodData);
+  const reloadFromStorage = useStore((state) => state.reloadFromStorage);
+
+  // Listen for cross-device sync events
+  useEffect(() => {
+    const handleSync = () => {
+      // Force reload from Zustand store which has been updated by PersonalOrganizer
+      reloadFromStorage();
+    };
+
+    window.addEventListener('supabase-sync-complete', handleSync);
+    return () => window.removeEventListener('supabase-sync-complete', handleSync);
+  }, [reloadFromStorage]);
 
   const [groceryInput, setGroceryInput] = useState('');
   const [expandedRecipe, setExpandedRecipe] = useState(null);

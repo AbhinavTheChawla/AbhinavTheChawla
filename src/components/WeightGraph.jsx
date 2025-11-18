@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useStore from '../store';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 const WeightGraph = () => {
   const weightData = useStore((state) => state.weightData);
   const updateWeightData = useStore((state) => state.updateWeightData);
+  const reloadFromStorage = useStore((state) => state.reloadFromStorage);
   const [weightInput, setWeightInput] = useState('');
   const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
+
+  // Listen for cross-device sync events
+  useEffect(() => {
+    const handleSync = () => {
+      reloadFromStorage();
+    };
+
+    window.addEventListener('supabase-sync-complete', handleSync);
+    return () => window.removeEventListener('supabase-sync-complete', handleSync);
+  }, [reloadFromStorage]);
 
   const handleAddWeight = () => {
     const weight = parseFloat(weightInput);

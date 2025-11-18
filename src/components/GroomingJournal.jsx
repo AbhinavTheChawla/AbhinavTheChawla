@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
 import useStore from '../store';
 
@@ -6,6 +6,17 @@ const GroomingJournal = () => {
   // Get state and actions from Zustand store
   const data = useStore((state) => state.groomingData);
   const updateGrooming = useStore((state) => state.updateGrooming);
+  const reloadFromStorage = useStore((state) => state.reloadFromStorage);
+
+  // Listen for cross-device sync events
+  useEffect(() => {
+    const handleSync = () => {
+      reloadFromStorage();
+    };
+
+    window.addEventListener('supabase-sync-complete', handleSync);
+    return () => window.removeEventListener('supabase-sync-complete', handleSync);
+  }, [reloadFromStorage]);
 
   const updateCell = (category, rowIndex, colIndex, value) => {
     const newData = {
