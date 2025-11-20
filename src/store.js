@@ -234,8 +234,7 @@ const useStore = create((set, get) => ({
   // Media Tracker State
   mediaData: loadFromStorage('mediaData', {
     consumed: [], // Array of consumed media items
-    readList: [], // Array of articles to read
-    watchList: [], // Array of videos to watch
+    toConsume: [], // Array of media to consume (consolidated read/watch list)
     weeklyRecaps: [] // Array of weekly recaps
   }),
 
@@ -508,8 +507,7 @@ const useStore = create((set, get) => ({
       }),
       mediaData: loadFromStorage('mediaData', {
         consumed: [],
-        readList: [],
-        watchList: [],
+        toConsume: [],
         weeklyRecaps: []
       })
     });
