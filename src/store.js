@@ -231,6 +231,14 @@ const useStore = create((set, get) => ({
     inspo: '' // Inspo notepad for meal ideas
   }),
 
+  // Media Tracker State
+  mediaData: loadFromStorage('mediaData', {
+    consumed: [], // Array of consumed media items
+    readList: [], // Array of articles to read
+    watchList: [], // Array of videos to watch
+    weeklyRecaps: [] // Array of weekly recaps
+  }),
+
   // Actions for Wardrobe
   updateCategories: (categories) => {
     set({ categories });
@@ -296,6 +304,12 @@ const useStore = create((set, get) => ({
   updateFoodData: (foodData) => {
     set({ foodData });
     saveToStorage('foodData', foodData);
+  },
+
+  // Actions for Media Tracker
+  updateMediaData: (mediaData) => {
+    set({ mediaData });
+    saveToStorage('mediaData', mediaData);
   },
 
   // Actions for AI Settings
@@ -491,6 +505,12 @@ const useStore = create((set, get) => ({
         },
         recipes: [],
         inspo: ''
+      }),
+      mediaData: loadFromStorage('mediaData', {
+        consumed: [],
+        readList: [],
+        watchList: [],
+        weeklyRecaps: []
       })
     });
   }

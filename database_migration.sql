@@ -59,5 +59,14 @@ BEGIN
         RAISE NOTICE 'Added ai_chat_history column';
     END IF;
 
+    -- Add media_data column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user_data' AND column_name = 'media_data'
+    ) THEN
+        ALTER TABLE user_data ADD COLUMN media_data JSONB;
+        RAISE NOTICE 'Added media_data column';
+    END IF;
+
     RAISE NOTICE 'Migration complete - all columns verified/added';
 END $$;
