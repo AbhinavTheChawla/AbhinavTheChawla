@@ -7,6 +7,13 @@ const Media = () => {
   const updateMediaData = useStore((state) => state.updateMediaData);
   const reloadFromStorage = useStore((state) => state.reloadFromStorage);
 
+  // Ensure mediaData has the correct structure with default values
+  const safeMediaData = {
+    consumed: mediaData?.consumed || [],
+    toConsume: mediaData?.toConsume || [],
+    weeklyRecaps: mediaData?.weeklyRecaps || []
+  };
+
   // Listen for cross-device sync events
   useEffect(() => {
     const handleSync = () => {
@@ -90,8 +97,10 @@ const Media = () => {
   // Get all previously used tags
   const getAllUsedTags = () => {
     const tags = new Set();
-    mediaData.consumed.forEach(item => {
-      item.tags.forEach(tag => tags.add(tag));
+    safeMediaData.consumed.forEach(item => {
+      if (item.tags) {
+        item.tags.forEach(tag => tags.add(tag));
+      }
     });
     return Array.from(tags).sort();
   };
@@ -129,7 +138,7 @@ const Media = () => {
 
     updateMediaData({
       ...mediaData,
-      consumed: [newItem, ...mediaData.consumed]
+      consumed: [newItem, ...safeMediaData.consumed]
     });
 
     setNewMediaUrl('');
@@ -139,7 +148,7 @@ const Media = () => {
   const deleteMediaItem = (id) => {
     updateMediaData({
       ...mediaData,
-      consumed: mediaData.consumed.filter(item => item.id !== id)
+      consumed: safeMediaData.consumed.filter(item => item.id !== id)
     });
   };
 
@@ -164,14 +173,14 @@ const Media = () => {
 
     updateMediaData({
       ...mediaData,
-      toConsume: [...newItems, ...mediaData.toConsume]
+      toConsume: [...newItems, ...safeMediaData.toConsume]
     });
 
     setToConsumeInput('');
   };
 
   const markAsConsumed = async (id) => {
-    const item = mediaData.toConsume.find(i => i.id === id);
+    const item = safeMediaData.toConsume.find(i => i.id === id);
     if (!item) return;
 
     const currentWeek = getCurrentWeek();
@@ -188,22 +197,22 @@ const Media = () => {
 
     updateMediaData({
       ...mediaData,
-      toConsume: mediaData.toConsume.filter(i => i.id !== id),
-      consumed: [consumedItem, ...mediaData.consumed]
+      toConsume: safeMediaData.toConsume.filter(i => i.id !== id),
+      consumed: [consumedItem, ...safeMediaData.consumed]
     });
   };
 
   const deleteToConsumeItem = (id) => {
     updateMediaData({
       ...mediaData,
-      toConsume: mediaData.toConsume.filter(item => item.id !== id)
+      toConsume: safeMediaData.toConsume.filter(item => item.id !== id)
     });
   };
 
   const refreshTitle = async (id, listType = 'toConsume') => {
     setFetchingTitles(prev => new Set([...prev, id]));
 
-    const list = listType === 'toConsume' ? mediaData.toConsume : mediaData.consumed;
+    const list = listType === 'toConsume' ? safeMediaData.toConsume : safeMediaData.consumed;
     const item = list.find(i => i.id === id);
 
     if (item) {
@@ -231,7 +240,7 @@ const Media = () => {
     const currentYear = new Date().getFullYear();
 
     // Get all items from current week
-    const weekItems = mediaData.consumed.filter(
+    const weekItems = safeMediaData.consumed.filter(
       item => item.weekNumber === currentWeek && item.year === currentYear
     );
 
@@ -277,18 +286,18 @@ const Media = () => {
     };
 
     // Check if recap already exists for this week
-    const existingRecapIndex = mediaData.weeklyRecaps.findIndex(
+    const existingRecapIndex = safeMediaData.weeklyRecaps.findIndex(
       r => r.weekNumber === currentWeek && r.year === currentYear
     );
 
     let newRecaps;
     if (existingRecapIndex >= 0) {
       // Update existing recap
-      newRecaps = [...mediaData.weeklyRecaps];
+      newRecaps = [...safeMediaData.weeklyRecaps];
       newRecaps[existingRecapIndex] = recap;
     } else {
       // Add new recap
-      newRecaps = [recap, ...mediaData.weeklyRecaps];
+      newRecaps = [recap, ...safeMediaData.weeklyRecaps];
     }
 
     updateMediaData({
@@ -302,7 +311,7 @@ const Media = () => {
   const deleteRecap = (recapId) => {
     updateMediaData({
       ...mediaData,
-      weeklyRecaps: mediaData.weeklyRecaps.filter(r => r.id !== recapId)
+      weeklyRecaps: safeMediaData.weeklyRecaps.filter(r => r.id !== recapId)
     });
 
     if (selectedWeek && selectedWeek.id === recapId) {
@@ -348,7 +357,7 @@ ${idx + 1}. **${item.title}**
   // Get unique tags for filtering
   const getAllTags = () => {
     const tags = new Set();
-    mediaData.consumed.forEach(item => {
+    safeMediaData.consumed.forEach(item => {
       if (item.tags) {
         item.tags.forEach(tag => tags.add(tag));
       }
@@ -361,7 +370,7 @@ ${idx + 1}. **${item.title}**
     const currentWeek = getCurrentWeek();
     const currentYear = new Date().getFullYear();
 
-    let items = mediaData.consumed.filter(
+    let items = safeMediaData.consumed.filter(
       item => item.weekNumber === currentWeek && item.year === currentYear
     );
 
@@ -379,7 +388,7 @@ ${idx + 1}. **${item.title}**
     const query = searchQuery.toLowerCase().trim();
     const results = [];
 
-    mediaData.weeklyRecaps.forEach(recap => {
+    safeMediaData.weeklyRecaps.forEach(recap => {
       const matchingItems = recap.items.filter(item =>
         item.title.toLowerCase().includes(query) ||
         item.url.toLowerCase().includes(query)
@@ -627,12 +636,12 @@ ${idx + 1}. **${item.title}**
 
           {/* To Consume Items */}
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="text-lg font-bold mb-4 text-slate-800">Queue ({mediaData.toConsume.length})</h3>
+            <h3 className="text-lg font-bold mb-4 text-slate-800">Queue ({safeMediaData.toConsume.length})</h3>
             <div className="space-y-3">
-              {mediaData.toConsume.length === 0 ? (
+              {safeMediaData.toConsume.length === 0 ? (
                 <p className="text-slate-500 text-center py-8">No items in queue</p>
               ) : (
-                mediaData.toConsume.map(item => (
+                safeMediaData.toConsume.map(item => (
                   <div key={item.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
@@ -835,10 +844,10 @@ ${idx + 1}. **${item.title}**
           <div className="bg-white rounded-xl p-6 shadow-md">
             <h3 className="text-lg font-bold mb-4 text-slate-800">Previous Recaps</h3>
             <div className="space-y-3">
-              {mediaData.weeklyRecaps.length === 0 ? (
+              {safeMediaData.weeklyRecaps.length === 0 ? (
                 <p className="text-slate-500 text-center py-8">No recaps generated yet</p>
               ) : (
-                mediaData.weeklyRecaps.map(recap => (
+                safeMediaData.weeklyRecaps.map(recap => (
                   <div
                     key={recap.id}
                     className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all"
