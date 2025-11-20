@@ -6,7 +6,6 @@ import Todo from './Todo';
 import AgentOrchestrator from '../agents/AgentOrchestrator';
 import SyncSettings from './SyncSettings';
 import Food from './Food';
-import Health from './Health';
 import useStore from '../store';
 import { initializeSupabase } from '../services/supabaseClient';
 import { syncService } from '../services/syncService';
@@ -450,16 +449,6 @@ const PersonalOrganizer = () => {
             Food
           </button>
           <button
-            onClick={() => setActiveTab('health')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
-              activeTab === 'health'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Health
-          </button>
-          <button
             onClick={() => setActiveTab('ai')}
             className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 flex items-center gap-1 sm:gap-2 whitespace-nowrap ${
               activeTab === 'ai'
@@ -676,11 +665,6 @@ const PersonalOrganizer = () => {
         {/* Food Tab Content */}
         {activeTab === 'food' && (
           <Food />
-        )}
-
-        {/* Health Tab Content */}
-        {activeTab === 'health' && (
-          <Health />
         )}
 
         {/* AI Assistant Tab Content */}

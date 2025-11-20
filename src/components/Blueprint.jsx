@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import useStore from '../store';
-import DailyReflection from './DailyReflection';
 
 const Blueprint = () => {
   // Get state and actions from Zustand store
@@ -18,46 +17,11 @@ const Blueprint = () => {
     return () => window.removeEventListener('supabase-sync-complete', handleSync);
   }, [reloadFromStorage]);
 
-  // Check if daily mantra needs to be reset
-  useEffect(() => {
-    const checkMantraReset = () => {
-      const today = new Date().toDateString();
-      const lastMantraDate = data.dailyMantraDate;
-
-      // Reset mantra if it's a new day
-      if (lastMantraDate && lastMantraDate !== today && data.dailyMantra) {
-        updateBlueprint({
-          ...data,
-          dailyMantra: '',
-          dailyMantraDate: today
-        });
-      } else if (!lastMantraDate) {
-        // Initialize the date if not set
-        updateBlueprint({
-          ...data,
-          dailyMantraDate: today
-        });
-      }
-    };
-
-    checkMantraReset();
-    // Check every minute if the day has changed
-    const interval = setInterval(checkMantraReset, 60000);
-
-    return () => clearInterval(interval);
-  }, [data, updateBlueprint]);
-
   const updateField = (field, value) => {
-    const today = new Date().toDateString();
     const newData = {
       ...data,
       [field]: value
     };
-
-    // Update the date when setting the daily mantra
-    if (field === 'dailyMantra') {
-      newData.dailyMantraDate = today;
-    }
 
     updateBlueprint(newData);
   };
@@ -131,22 +95,6 @@ const Blueprint = () => {
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200 p-4 sm:p-6 md:p-8">
-      {/* Daily Mantra Section */}
-      <div className="mb-4 sm:mb-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-purple-100">
-        <h3 className="text-lg sm:text-xl font-bold text-purple-900 mb-3 flex items-center gap-2">
-          <span>🌅</span>
-          Daily Mantra
-        </h3>
-        <textarea
-          value={data.dailyMantra || ''}
-          onChange={(e) => updateField('dailyMantra', e.target.value)}
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent hover:border-purple-300 transition-all resize-none"
-          placeholder="Set your mantra for today... (resets daily)"
-          rows="2"
-          style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
-        />
-      </div>
-
       {/* Blueprint Section (formerly Daily Intentions) */}
       <div className="mb-4 sm:mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-blue-100">
         <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-3 flex items-center gap-2">
@@ -178,9 +126,6 @@ const Blueprint = () => {
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
         />
       </div>
-
-      {/* Daily Reflection Section */}
-      <DailyReflection />
     </div>
   );
 };
