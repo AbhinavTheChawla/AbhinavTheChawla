@@ -35,10 +35,10 @@ const PersonalOrganizer = () => {
   const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
   const userId = useStore((state) => state.userId);
 
-  // Initialize active tab from localStorage or default to 'wardrobe'
+  // Initialize active tab from localStorage or default to 'media'
   const [activeTab, setActiveTab] = useState(() => {
     const savedTab = localStorage.getItem('activeTab');
-    return savedTab || 'wardrobe';
+    return savedTab || 'media';
   });
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -409,6 +409,16 @@ const PersonalOrganizer = () => {
         {/* Tab Navigation */}
         <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-slate-200 overflow-x-auto">
           <button
+            onClick={() => setActiveTab('media')}
+            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
+              activeTab === 'media'
+                ? 'border-orange-600 text-orange-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Media
+          </button>
+          <button
             onClick={() => setActiveTab('wardrobe')}
             className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
               activeTab === 'wardrobe'
@@ -439,16 +449,6 @@ const PersonalOrganizer = () => {
             Food
           </button>
           <button
-            onClick={() => setActiveTab('media')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
-              activeTab === 'media'
-                ? 'border-orange-600 text-orange-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Media
-          </button>
-          <button
             onClick={() => setActiveTab('ai')}
             className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 flex items-center gap-1 sm:gap-2 whitespace-nowrap ${
               activeTab === 'ai'
@@ -461,6 +461,11 @@ const PersonalOrganizer = () => {
             <span className="sm:hidden">AI</span>
           </button>
         </div>
+
+        {/* Media Tab Content */}
+        {activeTab === 'media' && (
+          <Media />
+        )}
 
         {/* Wardrobe Tab Content */}
         {activeTab === 'wardrobe' && (
@@ -660,11 +665,6 @@ const PersonalOrganizer = () => {
         {/* Food Tab Content */}
         {activeTab === 'food' && (
           <Food />
-        )}
-
-        {/* Media Tab Content */}
-        {activeTab === 'media' && (
-          <Media />
         )}
 
         {/* AI Assistant Tab Content */}

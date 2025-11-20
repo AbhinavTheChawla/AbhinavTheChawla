@@ -1,6 +1,38 @@
--- Database Migration Script
--- Run this in your Supabase SQL Editor to add any missing columns
+-- Database Migration Script for Personal Organizer
+-- Run this in your Supabase SQL Editor
 -- This script is safe to run multiple times - it only adds columns if they don't exist
+
+-- Create the user_data table if it doesn't exist
+CREATE TABLE IF NOT EXISTS user_data (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT UNIQUE NOT NULL,
+  wardrobe_categories JSONB,
+  wardrobe_data JSONB,
+  wardrobe_wishlist JSONB,
+  wardrobe_brand_urls JSONB,
+  wardrobe_wishlist_urls JSONB,
+  wardrobe_image_urls JSONB,
+  grooming_data JSONB,
+  blueprint_data JSONB,
+  daily_reflection JSONB,
+  weekly_tracker JSONB,
+  weight_data JSONB,
+  food_data JSONB,
+  media_data JSONB,
+  todo_notes JSONB,
+  ai_chat_history JSONB,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create index on user_id for faster lookups
+CREATE INDEX IF NOT EXISTS idx_user_data_user_id ON user_data(user_id);
+
+-- Enable Row Level Security
+ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policy if it exists and create new one
+DROP POLICY IF EXISTS "Allow all operations" ON user_data;
+CREATE POLICY "Allow all operations" ON user_data FOR ALL USING (true);
 
 -- Add missing columns if they don't exist
 DO $$
@@ -68,5 +100,29 @@ BEGIN
         RAISE NOTICE 'Added media_data column';
     END IF;
 
+    -- Add wardrobe_image_urls column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user_data' AND column_name = 'wardrobe_image_urls'
+    ) THEN
+        ALTER TABLE user_data ADD COLUMN wardrobe_image_urls JSONB;
+        RAISE NOTICE 'Added wardrobe_image_urls column';
+    END IF;
+
+    -- Add blueprint_data column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'user_data' AND column_name = 'blueprint_data'
+    ) THEN
+        ALTER TABLE user_data ADD COLUMN blueprint_data JSONB;
+        RAISE NOTICE 'Added blueprint_data column';
+    END IF;
+
     RAISE NOTICE 'Migration complete - all columns verified/added';
 END $$;
+
+-- Verify the table structure
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'user_data'
+ORDER BY ordinal_position;

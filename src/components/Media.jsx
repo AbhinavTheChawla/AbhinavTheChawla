@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2, Check, Star, Calendar, Download, Tag, ExternalLink, Clock } from 'lucide-react';
+import { Plus, X, Trash2, Check, Calendar, Download, Tag, ExternalLink, Clock, Search } from 'lucide-react';
 import useStore from '../store';
 
 const Media = () => {
@@ -18,21 +18,15 @@ const Media = () => {
   }, [reloadFromStorage]);
 
   // Local state
-  const [activeSection, setActiveSection] = useState('tracker'); // 'tracker', 'readList', 'watchList', 'recap'
+  const [activeSection, setActiveSection] = useState('tracker'); // 'tracker', 'toConsume', 'recap'
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newMediaTags, setNewMediaTags] = useState('');
-  const [readListUrl, setReadListUrl] = useState('');
-  const [readListTitle, setReadListTitle] = useState('');
-  const [readListNotes, setReadListNotes] = useState('');
-  const [readListPriority, setReadListPriority] = useState('medium');
-  const [watchListUrl, setWatchListUrl] = useState('');
-  const [watchListTitle, setWatchListTitle] = useState('');
-  const [watchListPlatform, setWatchListPlatform] = useState('');
-  const [watchListNotes, setWatchListNotes] = useState('');
-  const [watchListEpisode, setWatchListEpisode] = useState('');
-  const [watchListSeason, setWatchListSeason] = useState('');
+  const [toConsumeInput, setToConsumeInput] = useState('');
   const [filterTag, setFilterTag] = useState('all');
   const [selectedWeek, setSelectedWeek] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [fetchingTitles, setFetchingTitles] = useState(new Set());
 
   // Utility functions
   const getWeekNumber = (date) => {
@@ -63,18 +57,68 @@ const Media = () => {
 
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+  // Fetch webpage title from URL
+  const fetchWebpageTitle = async (url) => {
+    try {
+      // Use a CORS proxy or OpenGraph API to fetch title
+      // For now, we'll extract from URL or use a placeholder
+      // In production, you might want to use a backend service
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+
+      // Try to extract a readable title from the URL
+      if (pathname.length > 1) {
+        const parts = pathname.split('/').filter(p => p);
+        const lastPart = parts[parts.length - 1];
+        // Remove file extensions and convert dashes/underscores to spaces
+        const title = lastPart
+          .replace(/\.[^/.]+$/, '')
+          .replace(/[-_]/g, ' ')
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        return title || urlObj.hostname;
+      }
+
+      return urlObj.hostname;
+    } catch (error) {
+      console.error('Error fetching title:', error);
+      return url;
+    }
+  };
+
+  // Get all previously used tags
+  const getAllUsedTags = () => {
+    const tags = new Set();
+    mediaData.consumed.forEach(item => {
+      item.tags.forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags).sort();
+  };
+
+  // Filter tag suggestions based on input
+  const getTagSuggestions = (input) => {
+    if (!input.trim()) return [];
+    const allTags = getAllUsedTags();
+    const inputLower = input.toLowerCase().trim();
+    return allTags.filter(tag => tag.toLowerCase().includes(inputLower));
+  };
+
   // Media consumption tracker handlers
-  const addMediaItem = () => {
+  const addMediaItem = async () => {
     if (!newMediaUrl.trim()) return;
 
     const tags = newMediaTags.split(',').map(tag => tag.trim()).filter(tag => tag);
     const mediaType = detectMediaType(newMediaUrl);
     const currentWeek = getCurrentWeek();
 
+    // Fetch webpage title
+    const title = await fetchWebpageTitle(newMediaUrl.trim());
+
     const newItem = {
       id: generateId(),
       url: newMediaUrl.trim(),
-      title: newMediaUrl.trim(),
+      title: title,
       tags,
       mediaType,
       dateAdded: Date.now(),
@@ -99,39 +143,44 @@ const Media = () => {
     });
   };
 
-  // Read list handlers
-  const addToReadList = () => {
-    if (!readListUrl.trim()) return;
+  // To Consume list handlers (consolidated read/watch list)
+  const addToConsumeList = async () => {
+    if (!toConsumeInput.trim()) return;
 
-    const newItem = {
-      id: generateId(),
-      url: readListUrl.trim(),
-      title: readListTitle.trim() || readListUrl.trim(),
-      notes: readListNotes.trim(),
-      priority: readListPriority,
-      dateAdded: Date.now()
-    };
+    // Parse input - each line is a URL
+    const lines = toConsumeInput.split('\n').filter(line => line.trim());
+
+    const newItems = await Promise.all(lines.map(async (line) => {
+      const url = line.trim();
+      const title = await fetchWebpageTitle(url);
+
+      return {
+        id: generateId(),
+        url: url,
+        title: title,
+        dateAdded: Date.now()
+      };
+    }));
 
     updateMediaData({
       ...mediaData,
-      readList: [newItem, ...mediaData.readList]
+      toConsume: [...newItems, ...mediaData.toConsume]
     });
 
-    setReadListUrl('');
-    setReadListTitle('');
-    setReadListNotes('');
-    setReadListPriority('medium');
+    setToConsumeInput('');
   };
 
-  const markAsRead = (id) => {
-    const item = mediaData.readList.find(i => i.id === id);
+  const markAsConsumed = async (id) => {
+    const item = mediaData.toConsume.find(i => i.id === id);
     if (!item) return;
 
     const currentWeek = getCurrentWeek();
+    const mediaType = detectMediaType(item.url);
+
     const consumedItem = {
       ...item,
-      tags: ['article', 'read'],
-      mediaType: 'article',
+      tags: [],
+      mediaType: mediaType,
       consumedDate: Date.now(),
       weekNumber: currentWeek,
       year: new Date().getFullYear()
@@ -139,71 +188,40 @@ const Media = () => {
 
     updateMediaData({
       ...mediaData,
-      readList: mediaData.readList.filter(i => i.id !== id),
+      toConsume: mediaData.toConsume.filter(i => i.id !== id),
       consumed: [consumedItem, ...mediaData.consumed]
     });
   };
 
-  const deleteReadItem = (id) => {
+  const deleteToConsumeItem = (id) => {
     updateMediaData({
       ...mediaData,
-      readList: mediaData.readList.filter(item => item.id !== id)
+      toConsume: mediaData.toConsume.filter(item => item.id !== id)
     });
   };
 
-  // Watch list handlers
-  const addToWatchList = () => {
-    if (!watchListUrl.trim()) return;
+  const refreshTitle = async (id, listType = 'toConsume') => {
+    setFetchingTitles(prev => new Set([...prev, id]));
 
-    const newItem = {
-      id: generateId(),
-      url: watchListUrl.trim(),
-      title: watchListTitle.trim() || watchListUrl.trim(),
-      platform: watchListPlatform.trim(),
-      notes: watchListNotes.trim(),
-      episode: watchListEpisode.trim(),
-      season: watchListSeason.trim(),
-      dateAdded: Date.now()
-    };
+    const list = listType === 'toConsume' ? mediaData.toConsume : mediaData.consumed;
+    const item = list.find(i => i.id === id);
 
-    updateMediaData({
-      ...mediaData,
-      watchList: [newItem, ...mediaData.watchList]
-    });
+    if (item) {
+      const newTitle = await fetchWebpageTitle(item.url);
+      const updatedList = list.map(i =>
+        i.id === id ? { ...i, title: newTitle } : i
+      );
 
-    setWatchListUrl('');
-    setWatchListTitle('');
-    setWatchListPlatform('');
-    setWatchListNotes('');
-    setWatchListEpisode('');
-    setWatchListSeason('');
-  };
+      updateMediaData({
+        ...mediaData,
+        [listType]: updatedList
+      });
+    }
 
-  const markAsWatched = (id) => {
-    const item = mediaData.watchList.find(i => i.id === id);
-    if (!item) return;
-
-    const currentWeek = getCurrentWeek();
-    const consumedItem = {
-      ...item,
-      tags: ['video', 'watched'],
-      mediaType: 'video',
-      consumedDate: Date.now(),
-      weekNumber: currentWeek,
-      year: new Date().getFullYear()
-    };
-
-    updateMediaData({
-      ...mediaData,
-      watchList: mediaData.watchList.filter(i => i.id !== id),
-      consumed: [consumedItem, ...mediaData.consumed]
-    });
-  };
-
-  const deleteWatchItem = (id) => {
-    updateMediaData({
-      ...mediaData,
-      watchList: mediaData.watchList.filter(item => item.id !== id)
+    setFetchingTitles(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
     });
   };
 
@@ -229,9 +247,11 @@ const Media = () => {
       statistics.byType[item.mediaType] = (statistics.byType[item.mediaType] || 0) + 1;
 
       // Count by tags
-      item.tags.forEach(tag => {
-        statistics.byTag[tag] = (statistics.byTag[tag] || 0) + 1;
-      });
+      if (item.tags && item.tags.length > 0) {
+        item.tags.forEach(tag => {
+          statistics.byTag[tag] = (statistics.byTag[tag] || 0) + 1;
+        });
+      }
     });
 
     // Get week start and end dates
@@ -246,6 +266,7 @@ const Media = () => {
     endOfWeek.setHours(23, 59, 59, 999);
 
     const recap = {
+      id: generateId(),
       weekNumber: currentWeek,
       year: currentYear,
       startDate: startOfWeek.getTime(),
@@ -278,6 +299,17 @@ const Media = () => {
     setSelectedWeek(recap);
   };
 
+  const deleteRecap = (recapId) => {
+    updateMediaData({
+      ...mediaData,
+      weeklyRecaps: mediaData.weeklyRecaps.filter(r => r.id !== recapId)
+    });
+
+    if (selectedWeek && selectedWeek.id === recapId) {
+      setSelectedWeek(null);
+    }
+  };
+
   const exportRecap = (recap) => {
     const content = `# Weekly Media Recap - Week ${recap.weekNumber}, ${recap.year}
 
@@ -288,15 +320,15 @@ const Media = () => {
 ## By Type
 ${Object.entries(recap.statistics.byType).map(([type, count]) => `- ${type}: ${count}`).join('\n')}
 
-## By Tag
-${Object.entries(recap.statistics.byTag).map(([tag, count]) => `- ${tag}: ${count}`).join('\n')}
+${Object.keys(recap.statistics.byTag).length > 0 ? `## By Tag
+${Object.entries(recap.statistics.byTag).map(([tag, count]) => `- ${tag}: ${count}`).join('\n')}` : ''}
 
 ## Consumed Media
 ${recap.items.map((item, idx) => `
 ${idx + 1}. **${item.title}**
-   - Type: ${item.mediaType}
-   - Tags: ${item.tags.join(', ')}
    - URL: ${item.url}
+   - Type: ${item.mediaType}
+   ${item.tags && item.tags.length > 0 ? `- Tags: ${item.tags.join(', ')}` : ''}
    - Date: ${new Date(item.consumedDate).toLocaleDateString()}
 `).join('\n')}
 `;
@@ -313,11 +345,13 @@ ${idx + 1}. **${item.title}**
     URL.revokeObjectURL(url);
   };
 
-  // Get unique tags
+  // Get unique tags for filtering
   const getAllTags = () => {
     const tags = new Set();
     mediaData.consumed.forEach(item => {
-      item.tags.forEach(tag => tags.add(tag));
+      if (item.tags) {
+        item.tags.forEach(tag => tags.add(tag));
+      }
     });
     return Array.from(tags);
   };
@@ -332,20 +366,69 @@ ${idx + 1}. **${item.title}**
     );
 
     if (filterTag !== 'all') {
-      items = items.filter(item => item.tags.includes(filterTag));
+      items = items.filter(item => item.tags && item.tags.includes(filterTag));
     }
 
     return items;
   };
 
-  // Sort functions
-  const sortReadListByPriority = (items) => {
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    return [...items].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  // Search recaps
+  const searchRecaps = () => {
+    if (!searchQuery.trim()) return [];
+
+    const query = searchQuery.toLowerCase().trim();
+    const results = [];
+
+    mediaData.weeklyRecaps.forEach(recap => {
+      const matchingItems = recap.items.filter(item =>
+        item.title.toLowerCase().includes(query) ||
+        item.url.toLowerCase().includes(query)
+      );
+
+      if (matchingItems.length > 0) {
+        results.push({
+          recap,
+          items: matchingItems
+        });
+      }
+    });
+
+    return results;
   };
 
-  const sortByDateAdded = (items) => {
-    return [...items].sort((a, b) => b.dateAdded - a.dateAdded);
+  // Handle tag input with autocomplete
+  const handleTagInput = (e) => {
+    const value = e.target.value;
+    setNewMediaTags(value);
+
+    // Check if we should show suggestions
+    const lastComma = value.lastIndexOf(',');
+    const currentTag = lastComma >= 0 ? value.slice(lastComma + 1).trim() : value.trim();
+
+    if (currentTag.length > 0) {
+      setShowTagSuggestions(true);
+    } else {
+      setShowTagSuggestions(false);
+    }
+  };
+
+  const addTagSuggestion = (tag) => {
+    const lastComma = newMediaTags.lastIndexOf(',');
+    let newValue;
+
+    if (lastComma >= 0) {
+      newValue = newMediaTags.slice(0, lastComma + 1) + ' ' + tag + ', ';
+    } else {
+      newValue = tag + ', ';
+    }
+
+    setNewMediaTags(newValue);
+    setShowTagSuggestions(false);
+  };
+
+  const getCurrentTagInput = () => {
+    const lastComma = newMediaTags.lastIndexOf(',');
+    return lastComma >= 0 ? newMediaTags.slice(lastComma + 1).trim() : newMediaTags.trim();
   };
 
   return (
@@ -363,24 +446,14 @@ ${idx + 1}. **${item.title}**
           Consumption Tracker
         </button>
         <button
-          onClick={() => setActiveSection('readList')}
+          onClick={() => setActiveSection('toConsume')}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            activeSection === 'readList'
-              ? 'bg-green-600 text-white shadow-md'
-              : 'bg-white text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          Read List
-        </button>
-        <button
-          onClick={() => setActiveSection('watchList')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            activeSection === 'watchList'
+            activeSection === 'toConsume'
               ? 'bg-purple-600 text-white shadow-md'
               : 'bg-white text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Watch List
+          To Consume
         </button>
         <button
           onClick={() => setActiveSection('recap')}
@@ -408,14 +481,31 @@ ${idx + 1}. **${item.title}**
                 placeholder="Media URL..."
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
-              <input
-                type="text"
-                value={newMediaTags}
-                onChange={(e) => setNewMediaTags(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addMediaItem()}
-                placeholder="Tags (comma-separated)..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={newMediaTags}
+                  onChange={handleTagInput}
+                  onKeyPress={(e) => e.key === 'Enter' && addMediaItem()}
+                  onFocus={() => getCurrentTagInput().length > 0 && setShowTagSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
+                  placeholder="Tags (comma-separated)..."
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                {showTagSuggestions && getTagSuggestions(getCurrentTagInput()).length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {getTagSuggestions(getCurrentTagInput()).map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => addTagSuggestion(tag)}
+                        className="w-full px-4 py-2 text-left hover:bg-blue-50 transition-colors"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={addMediaItem}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
@@ -427,35 +517,37 @@ ${idx + 1}. **${item.title}**
           </div>
 
           {/* Filter by tag */}
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Tag size={18} className="text-slate-600" />
-              <span className="text-sm font-medium text-slate-700">Filter:</span>
-              <button
-                onClick={() => setFilterTag('all')}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  filterTag === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                All
-              </button>
-              {getAllTags().map(tag => (
+          {getAllTags().length > 0 && (
+            <div className="bg-white rounded-xl p-4 shadow-md">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Tag size={18} className="text-slate-600" />
+                <span className="text-sm font-medium text-slate-700">Filter:</span>
                 <button
-                  key={tag}
-                  onClick={() => setFilterTag(tag)}
+                  onClick={() => setFilterTag('all')}
                   className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    filterTag === tag
+                    filterTag === 'all'
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {tag}
+                  All
                 </button>
-              ))}
+                {getAllTags().map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setFilterTag(tag)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      filterTag === tag
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Current week's consumed media */}
           <div className="bg-white rounded-xl p-6 shadow-md">
@@ -484,7 +576,7 @@ ${idx + 1}. **${item.title}**
                           <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">
                             {item.mediaType}
                           </span>
-                          {item.tags.map(tag => (
+                          {item.tags && item.tags.map(tag => (
                             <span key={tag} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                               {tag}
                             </span>
@@ -510,187 +602,37 @@ ${idx + 1}. **${item.title}**
         </div>
       )}
 
-      {/* Read List */}
-      {activeSection === 'readList' && (
+      {/* To Consume List */}
+      {activeSection === 'toConsume' && (
         <div className="space-y-4">
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <h2 className="text-xl font-bold mb-4 text-slate-800">Add to Read List</h2>
+            <h2 className="text-xl font-bold mb-4 text-slate-800">Add to Queue</h2>
             <div className="space-y-3">
-              <input
-                type="url"
-                value={readListUrl}
-                onChange={(e) => setReadListUrl(e.target.value)}
-                placeholder="Article URL..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
-              <input
-                type="text"
-                value={readListTitle}
-                onChange={(e) => setReadListTitle(e.target.value)}
-                placeholder="Title (optional)..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
               <textarea
-                value={readListNotes}
-                onChange={(e) => setReadListNotes(e.target.value)}
-                placeholder="Notes (optional)..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
-                rows="2"
-              />
-              <div className="flex gap-2 items-center">
-                <label className="text-sm font-medium text-slate-700">Priority:</label>
-                <select
-                  value={readListPriority}
-                  onChange={(e) => setReadListPriority(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-              <button
-                onClick={addToReadList}
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
-              >
-                <Plus size={18} />
-                Add to Read List
-              </button>
-            </div>
-          </div>
-
-          {/* Read List Items */}
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="text-lg font-bold mb-4 text-slate-800">Reading Queue</h3>
-            <div className="space-y-3">
-              {sortReadListByPriority(mediaData.readList).length === 0 ? (
-                <p className="text-slate-500 text-center py-8">No items in read list</p>
-              ) : (
-                sortReadListByPriority(mediaData.readList).map(item => (
-                  <div key={item.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-green-600 hover:text-green-800 font-medium flex items-center gap-2"
-                          >
-                            {item.title}
-                            <ExternalLink size={14} />
-                          </a>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            item.priority === 'high'
-                              ? 'bg-red-100 text-red-700'
-                              : item.priority === 'medium'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-slate-100 text-slate-700'
-                          }`}>
-                            {item.priority}
-                          </span>
-                        </div>
-                        {item.notes && (
-                          <p className="text-sm text-slate-600 mb-2">{item.notes}</p>
-                        )}
-                        <span className="text-xs text-slate-500">
-                          Added {new Date(item.dateAdded).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => markAsRead(item.id)}
-                          className="text-green-600 hover:text-green-800 transition-all"
-                          title="Mark as read"
-                        >
-                          <Check size={18} />
-                        </button>
-                        <button
-                          onClick={() => deleteReadItem(item.id)}
-                          className="text-red-500 hover:text-red-700 transition-all"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Watch List */}
-      {activeSection === 'watchList' && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <h2 className="text-xl font-bold mb-4 text-slate-800">Add to Watch List</h2>
-            <div className="space-y-3">
-              <input
-                type="url"
-                value={watchListUrl}
-                onChange={(e) => setWatchListUrl(e.target.value)}
-                placeholder="Video URL..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-              />
-              <input
-                type="text"
-                value={watchListTitle}
-                onChange={(e) => setWatchListTitle(e.target.value)}
-                placeholder="Title (optional)..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={watchListPlatform}
-                  onChange={(e) => setWatchListPlatform(e.target.value)}
-                  placeholder="Platform (e.g., YouTube)..."
-                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={watchListSeason}
-                    onChange={(e) => setWatchListSeason(e.target.value)}
-                    placeholder="S1..."
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  />
-                  <input
-                    type="text"
-                    value={watchListEpisode}
-                    onChange={(e) => setWatchListEpisode(e.target.value)}
-                    placeholder="E1..."
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  />
-                </div>
-              </div>
-              <textarea
-                value={watchListNotes}
-                onChange={(e) => setWatchListNotes(e.target.value)}
-                placeholder="Notes (optional)..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                rows="2"
+                value={toConsumeInput}
+                onChange={(e) => setToConsumeInput(e.target.value)}
+                placeholder="Paste URLs here (one per line)..."
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 min-h-[150px] font-mono text-sm"
+                rows="8"
               />
               <button
-                onClick={addToWatchList}
+                onClick={addToConsumeList}
                 className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all flex items-center justify-center gap-2"
               >
                 <Plus size={18} />
-                Add to Watch List
+                Add to Queue
               </button>
             </div>
           </div>
 
-          {/* Watch List Items */}
+          {/* To Consume Items */}
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="text-lg font-bold mb-4 text-slate-800">Watch Queue</h3>
+            <h3 className="text-lg font-bold mb-4 text-slate-800">Queue ({mediaData.toConsume.length})</h3>
             <div className="space-y-3">
-              {sortByDateAdded(mediaData.watchList).length === 0 ? (
-                <p className="text-slate-500 text-center py-8">No items in watch list</p>
+              {mediaData.toConsume.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">No items in queue</p>
               ) : (
-                sortByDateAdded(mediaData.watchList).map(item => (
+                mediaData.toConsume.map(item => (
                   <div key={item.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
@@ -700,43 +642,35 @@ ${idx + 1}. **${item.title}**
                           rel="noopener noreferrer"
                           className="text-purple-600 hover:text-purple-800 font-medium flex items-center gap-2 mb-2"
                         >
-                          {item.title}
+                          {fetchingTitles.has(item.id) ? (
+                            <span className="text-slate-400">Fetching title...</span>
+                          ) : (
+                            item.title
+                          )}
                           <ExternalLink size={14} />
                         </a>
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          {item.platform && (
-                            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
-                              {item.platform}
-                            </span>
-                          )}
-                          {item.season && (
-                            <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">
-                              {item.season}
-                            </span>
-                          )}
-                          {item.episode && (
-                            <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">
-                              {item.episode}
-                            </span>
-                          )}
-                        </div>
-                        {item.notes && (
-                          <p className="text-sm text-slate-600 mb-2">{item.notes}</p>
-                        )}
                         <span className="text-xs text-slate-500">
                           Added {new Date(item.dateAdded).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => markAsWatched(item.id)}
+                          onClick={() => refreshTitle(item.id, 'toConsume')}
+                          className="text-slate-500 hover:text-slate-700 transition-all text-xs px-2 py-1 bg-slate-100 rounded"
+                          title="Refresh title"
+                          disabled={fetchingTitles.has(item.id)}
+                        >
+                          ↻
+                        </button>
+                        <button
+                          onClick={() => markAsConsumed(item.id)}
                           className="text-purple-600 hover:text-purple-800 transition-all"
-                          title="Mark as watched"
+                          title="Mark as consumed"
                         >
                           <Check size={18} />
                         </button>
                         <button
-                          onClick={() => deleteWatchItem(item.id)}
+                          onClick={() => deleteToConsumeItem(item.id)}
                           className="text-red-500 hover:text-red-700 transition-all"
                         >
                           <Trash2 size={18} />
@@ -766,19 +700,72 @@ ${idx + 1}. **${item.title}**
               </button>
             </div>
 
+            {/* Search */}
+            <div className="mb-4">
+              <div className="relative">
+                <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search recaps by title..."
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                />
+              </div>
+
+              {/* Search Results */}
+              {searchQuery.trim() && (
+                <div className="mt-3 space-y-2">
+                  {searchRecaps().length === 0 ? (
+                    <p className="text-slate-500 text-sm">No results found</p>
+                  ) : (
+                    searchRecaps().map(({ recap, items }) => (
+                      <div key={recap.id} className="border border-orange-200 rounded-lg p-3 bg-orange-50">
+                        <p className="text-sm font-medium text-slate-700 mb-2">
+                          Week {recap.weekNumber}, {recap.year} ({items.length} matches)
+                        </p>
+                        <div className="space-y-1">
+                          {items.map(item => (
+                            <a
+                              key={item.id}
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-orange-600 hover:text-orange-800 flex items-center gap-2 block"
+                            >
+                              {item.title}
+                              <ExternalLink size={12} />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
             {selectedWeek && (
               <div className="border border-orange-200 rounded-lg p-4 bg-orange-50 mb-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-slate-800">
                     Week {selectedWeek.weekNumber}, {selectedWeek.year}
                   </h3>
-                  <button
-                    onClick={() => exportRecap(selectedWeek)}
-                    className="px-3 py-1 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-all flex items-center gap-2"
-                  >
-                    <Download size={14} />
-                    Export
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => exportRecap(selectedWeek)}
+                      className="px-3 py-1 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-all flex items-center gap-2"
+                    >
+                      <Download size={14} />
+                      Export
+                    </button>
+                    <button
+                      onClick={() => setSelectedWeek(null)}
+                      className="px-3 py-1 bg-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-400 transition-all"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -806,17 +793,19 @@ ${idx + 1}. **${item.title}**
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-sm font-medium text-slate-700 mb-2">By Tag</p>
-                    <div className="space-y-1">
-                      {Object.entries(selectedWeek.statistics.byTag).map(([tag, count]) => (
-                        <div key={tag} className="flex justify-between text-sm">
-                          <span className="text-slate-600">{tag}</span>
-                          <span className="font-medium text-slate-800">{count}</span>
-                        </div>
-                      ))}
+                  {Object.keys(selectedWeek.statistics.byTag).length > 0 && (
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-sm font-medium text-slate-700 mb-2">By Tag</p>
+                      <div className="space-y-1">
+                        {Object.entries(selectedWeek.statistics.byTag).map(([tag, count]) => (
+                          <div key={tag} className="flex justify-between text-sm">
+                            <span className="text-slate-600">{tag}</span>
+                            <span className="font-medium text-slate-800">{count}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="bg-white rounded-lg p-3">
@@ -851,12 +840,14 @@ ${idx + 1}. **${item.title}**
               ) : (
                 mediaData.weeklyRecaps.map(recap => (
                   <div
-                    key={`${recap.year}-${recap.weekNumber}`}
-                    className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => setSelectedWeek(recap)}
+                    key={recap.id}
+                    className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div
+                        className="flex-1 cursor-pointer"
+                        onClick={() => setSelectedWeek(recap)}
+                      >
                         <h4 className="font-medium text-slate-800">
                           Week {recap.weekNumber}, {recap.year}
                         </h4>
@@ -864,16 +855,30 @@ ${idx + 1}. **${item.title}**
                           {recap.statistics.total} items • {new Date(recap.startDate).toLocaleDateString()}
                         </p>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          exportRecap(recap);
-                        }}
-                        className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-all flex items-center gap-2"
-                      >
-                        <Download size={14} />
-                        Export
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportRecap(recap);
+                          }}
+                          className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-all flex items-center gap-2"
+                        >
+                          <Download size={14} />
+                          Export
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Delete this recap?')) {
+                              deleteRecap(recap.id);
+                            }
+                          }}
+                          className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded-lg hover:bg-red-200 transition-all flex items-center gap-2"
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
