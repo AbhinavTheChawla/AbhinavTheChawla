@@ -20,6 +20,7 @@ import { getSupabase } from './supabaseClient';
  *   weekly_tracker JSONB,
  *   weight_data JSONB,
  *   food_data JSONB,
+ *   media_data JSONB,
  *   todo_notes JSONB,
  *   ai_chat_history JSONB,
  *   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -128,6 +129,7 @@ class SyncService {
         weekly_tracker: JSON.parse(localStorage.getItem('weeklyTracker') || 'null'),
         weight_data: JSON.parse(localStorage.getItem('weightData') || 'null'),
         food_data: JSON.parse(localStorage.getItem('foodData') || 'null'),
+        media_data: JSON.parse(localStorage.getItem('mediaData') || 'null'),
         todo_notes: JSON.parse(localStorage.getItem('todo_notes') || 'null'),
         ai_chat_history: JSON.parse(localStorage.getItem('ai_chat_history') || 'null'),
         updated_at: new Date().toISOString()
@@ -202,6 +204,7 @@ class SyncService {
         hasChanges = this.updateLocalStorageIfChanged('weeklyTracker', data.weekly_tracker) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('weightData', data.weight_data) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('foodData', data.food_data) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('mediaData', data.media_data) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('todo_notes', data.todo_notes) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('ai_chat_history', data.ai_chat_history) || hasChanges;
 
