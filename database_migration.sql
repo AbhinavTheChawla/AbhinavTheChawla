@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS user_data (
   weekly_tracker JSONB,
   weight_data JSONB,
   food_data JSONB,
+  -- Media data stores: consumed media, toConsume queue, and weeklyRecaps
   media_data JSONB,
   todo_notes JSONB,
   ai_chat_history JSONB,
@@ -92,12 +93,13 @@ BEGIN
     END IF;
 
     -- Add media_data column if missing
+    -- This stores: consumed media, toConsume queue, and weeklyRecaps
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'user_data' AND column_name = 'media_data'
     ) THEN
         ALTER TABLE user_data ADD COLUMN media_data JSONB;
-        RAISE NOTICE 'Added media_data column';
+        RAISE NOTICE 'Added media_data column (includes consumed, toConsume, weeklyRecaps)';
     END IF;
 
     -- Add wardrobe_image_urls column if missing
