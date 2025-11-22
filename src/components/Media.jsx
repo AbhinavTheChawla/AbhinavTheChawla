@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2, Check, Calendar, Download, Tag, ExternalLink, Clock, Search } from 'lucide-react';
+import { Plus, X, Trash2, Check, Calendar, Download, Tag, ExternalLink, Clock, Search, Edit2 } from 'lucide-react';
 import useStore from '../store';
 
 const Media = () => {
@@ -27,13 +27,33 @@ const Media = () => {
   // Local state
   const [activeSection, setActiveSection] = useState('tracker'); // 'tracker', 'toConsume', 'recap'
   const [newMediaUrl, setNewMediaUrl] = useState('');
+  const [newMediaTitle, setNewMediaTitle] = useState('');
   const [newMediaTags, setNewMediaTags] = useState('');
+  const [newMediaDescription, setNewMediaDescription] = useState('');
   const [toConsumeInput, setToConsumeInput] = useState('');
+  const [toConsumeTitle, setToConsumeTitle] = useState('');
+  const [toConsumeTags, setToConsumeTags] = useState('');
+  const [showToConsumeTagSuggestions, setShowToConsumeTagSuggestions] = useState(false);
   const [filterTag, setFilterTag] = useState('all');
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [fetchingTitles, setFetchingTitles] = useState(new Set());
+
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [editTags, setEditTags] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editListType, setEditListType] = useState('consumed'); // 'consumed' or 'toConsume'
+  const [showEditTagSuggestions, setShowEditTagSuggestions] = useState(false);
+
+  // Consume modal state (for adding description when marking as consumed)
+  const [consumeModalOpen, setConsumeModalOpen] = useState(false);
+  const [consumingItem, setConsumingItem] = useState(null);
+  const [consumeDescription, setConsumeDescription] = useState('');
 
   // Utility functions
   const getWeekNumber = (date) => {
@@ -94,10 +114,16 @@ const Media = () => {
     }
   };
 
-  // Get all previously used tags
+  // Get all previously used tags (from both consumed and toConsume)
   const getAllUsedTags = () => {
     const tags = new Set();
     safeMediaData.consumed.forEach(item => {
+      if (item.tags) {
+        item.tags.forEach(tag => tags.add(tag));
+      }
+    });
+    // Also include tags from toConsume items
+    safeMediaData.toConsume.forEach(item => {
       if (item.tags) {
         item.tags.forEach(tag => tags.add(tag));
       }
@@ -121,8 +147,8 @@ const Media = () => {
     const mediaType = detectMediaType(newMediaUrl);
     const currentWeek = getCurrentWeek();
 
-    // Fetch webpage title
-    const title = await fetchWebpageTitle(newMediaUrl.trim());
+    // Use custom title if provided, otherwise fetch from URL
+    const title = newMediaTitle.trim() || await fetchWebpageTitle(newMediaUrl.trim());
 
     const newItem = {
       id: generateId(),
@@ -130,6 +156,7 @@ const Media = () => {
       title: title,
       tags,
       mediaType,
+      description: newMediaDescription.trim(),
       dateAdded: Date.now(),
       consumedDate: Date.now(),
       weekNumber: currentWeek,
@@ -142,7 +169,9 @@ const Media = () => {
     });
 
     setNewMediaUrl('');
+    setNewMediaTitle('');
     setNewMediaTags('');
+    setNewMediaDescription('');
   };
 
   const deleteMediaItem = (id) => {
@@ -156,40 +185,50 @@ const Media = () => {
   const addToConsumeList = async () => {
     if (!toConsumeInput.trim()) return;
 
-    // Parse input - each line is a URL
-    const lines = toConsumeInput.split('\n').filter(line => line.trim());
+    const url = toConsumeInput.trim();
+    // Use custom title if provided, otherwise fetch from URL
+    const title = toConsumeTitle.trim() || await fetchWebpageTitle(url);
+    const tags = toConsumeTags.split(',').map(tag => tag.trim()).filter(tag => tag);
 
-    const newItems = await Promise.all(lines.map(async (line) => {
-      const url = line.trim();
-      const title = await fetchWebpageTitle(url);
-
-      return {
-        id: generateId(),
-        url: url,
-        title: title,
-        dateAdded: Date.now()
-      };
-    }));
+    const newItem = {
+      id: generateId(),
+      url: url,
+      title: title,
+      tags: tags,
+      dateAdded: Date.now()
+    };
 
     updateMediaData({
       ...mediaData,
-      toConsume: [...newItems, ...safeMediaData.toConsume]
+      toConsume: [newItem, ...safeMediaData.toConsume]
     });
 
     setToConsumeInput('');
+    setToConsumeTitle('');
+    setToConsumeTags('');
   };
 
-  const markAsConsumed = async (id) => {
+  // Open consume modal to prompt for description
+  const initiateMarkAsConsumed = (id) => {
     const item = safeMediaData.toConsume.find(i => i.id === id);
     if (!item) return;
+    setConsumingItem(item);
+    setConsumeDescription('');
+    setConsumeModalOpen(true);
+  };
+
+  // Complete the mark as consumed action with description
+  const confirmMarkAsConsumed = () => {
+    if (!consumingItem) return;
 
     const currentWeek = getCurrentWeek();
-    const mediaType = detectMediaType(item.url);
+    const mediaType = detectMediaType(consumingItem.url);
 
     const consumedItem = {
-      ...item,
-      tags: [],
+      ...consumingItem,
+      tags: consumingItem.tags || [],
       mediaType: mediaType,
+      description: consumeDescription.trim(),
       consumedDate: Date.now(),
       weekNumber: currentWeek,
       year: new Date().getFullYear()
@@ -197,9 +236,13 @@ const Media = () => {
 
     updateMediaData({
       ...mediaData,
-      toConsume: safeMediaData.toConsume.filter(i => i.id !== id),
+      toConsume: safeMediaData.toConsume.filter(i => i.id !== consumingItem.id),
       consumed: [consumedItem, ...safeMediaData.consumed]
     });
+
+    setConsumeModalOpen(false);
+    setConsumingItem(null);
+    setConsumeDescription('');
   };
 
   const deleteToConsumeItem = (id) => {
@@ -232,6 +275,127 @@ const Media = () => {
       newSet.delete(id);
       return newSet;
     });
+  };
+
+  // Edit item functions
+  const openEditModal = (item, listType) => {
+    setEditingItem(item);
+    setEditTitle(item.title || '');
+    setEditUrl(item.url || '');
+    setEditTags(item.tags ? item.tags.join(', ') : '');
+    setEditDescription(item.description || '');
+    setEditListType(listType);
+    setEditModalOpen(true);
+  };
+
+  const saveEditedItem = () => {
+    if (!editingItem) return;
+
+    const updatedItem = {
+      ...editingItem,
+      title: editTitle.trim() || editingItem.title,
+      url: editUrl.trim() || editingItem.url,
+      tags: editTags.split(',').map(tag => tag.trim()).filter(tag => tag),
+      description: editDescription.trim()
+    };
+
+    if (editListType === 'consumed') {
+      const updatedList = safeMediaData.consumed.map(i =>
+        i.id === editingItem.id ? updatedItem : i
+      );
+      updateMediaData({
+        ...mediaData,
+        consumed: updatedList
+      });
+    } else {
+      const updatedList = safeMediaData.toConsume.map(i =>
+        i.id === editingItem.id ? updatedItem : i
+      );
+      updateMediaData({
+        ...mediaData,
+        toConsume: updatedList
+      });
+    }
+
+    closeEditModal();
+  };
+
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setEditingItem(null);
+    setEditTitle('');
+    setEditUrl('');
+    setEditTags('');
+    setEditDescription('');
+    setShowEditTagSuggestions(false);
+  };
+
+  // Handle edit tag input with autocomplete
+  const handleEditTagInput = (e) => {
+    const value = e.target.value;
+    setEditTags(value);
+
+    const lastComma = value.lastIndexOf(',');
+    const currentTag = lastComma >= 0 ? value.slice(lastComma + 1).trim() : value.trim();
+
+    if (currentTag.length > 0) {
+      setShowEditTagSuggestions(true);
+    } else {
+      setShowEditTagSuggestions(false);
+    }
+  };
+
+  const addEditTagSuggestion = (tag) => {
+    const lastComma = editTags.lastIndexOf(',');
+    let newValue;
+
+    if (lastComma >= 0) {
+      newValue = editTags.slice(0, lastComma + 1) + ' ' + tag + ', ';
+    } else {
+      newValue = tag + ', ';
+    }
+
+    setEditTags(newValue);
+    setShowEditTagSuggestions(false);
+  };
+
+  const getCurrentEditTagInput = () => {
+    const lastComma = editTags.lastIndexOf(',');
+    return lastComma >= 0 ? editTags.slice(lastComma + 1).trim() : editTags.trim();
+  };
+
+  // Handle To Consume tag input with autocomplete
+  const handleToConsumeTagInput = (e) => {
+    const value = e.target.value;
+    setToConsumeTags(value);
+
+    const lastComma = value.lastIndexOf(',');
+    const currentTag = lastComma >= 0 ? value.slice(lastComma + 1).trim() : value.trim();
+
+    if (currentTag.length > 0) {
+      setShowToConsumeTagSuggestions(true);
+    } else {
+      setShowToConsumeTagSuggestions(false);
+    }
+  };
+
+  const addToConsumeTagSuggestion = (tag) => {
+    const lastComma = toConsumeTags.lastIndexOf(',');
+    let newValue;
+
+    if (lastComma >= 0) {
+      newValue = toConsumeTags.slice(0, lastComma + 1) + ' ' + tag + ', ';
+    } else {
+      newValue = tag + ', ';
+    }
+
+    setToConsumeTags(newValue);
+    setShowToConsumeTagSuggestions(false);
+  };
+
+  const getCurrentToConsumeTagInput = () => {
+    const lastComma = toConsumeTags.lastIndexOf(',');
+    return lastComma >= 0 ? toConsumeTags.slice(lastComma + 1).trim() : toConsumeTags.trim();
   };
 
   // Weekly recap functionality
@@ -327,7 +491,7 @@ const Media = () => {
 - **Period:** ${new Date(recap.startDate).toLocaleDateString()} - ${new Date(recap.endDate).toLocaleDateString()}
 
 ## By Type
-${Object.entries(recap.statistics.byType).map(([type, count]) => `- ${type}: ${count}`).join('\n')}
+${Object.entries(recap.statistics.byType).filter(([type]) => type !== 'other').map(([type, count]) => `- ${type}: ${count}`).join('\n')}
 
 ${Object.keys(recap.statistics.byTag).length > 0 ? `## By Tag
 ${Object.entries(recap.statistics.byTag).map(([tag, count]) => `- ${tag}: ${count}`).join('\n')}` : ''}
@@ -336,8 +500,9 @@ ${Object.entries(recap.statistics.byTag).map(([tag, count]) => `- ${tag}: ${coun
 ${recap.items.map((item, idx) => `
 ${idx + 1}. **${item.title}**
    - URL: ${item.url}
-   - Type: ${item.mediaType}
+   ${item.mediaType !== 'other' ? `- Type: ${item.mediaType}` : ''}
    ${item.tags && item.tags.length > 0 ? `- Tags: ${item.tags.join(', ')}` : ''}
+   ${item.description ? `- Description: ${item.description}` : ''}
    - Date: ${new Date(item.consumedDate).toLocaleDateString()}
 `).join('\n')}
 `;
@@ -381,7 +546,7 @@ ${idx + 1}. **${item.title}**
     return items;
   };
 
-  // Search recaps
+  // Search recaps (includes description search)
   const searchRecaps = () => {
     if (!searchQuery.trim()) return [];
 
@@ -391,7 +556,8 @@ ${idx + 1}. **${item.title}**
     safeMediaData.weeklyRecaps.forEach(recap => {
       const matchingItems = recap.items.filter(item =>
         item.title.toLowerCase().includes(query) ||
-        item.url.toLowerCase().includes(query)
+        item.url.toLowerCase().includes(query) ||
+        (item.description && item.description.toLowerCase().includes(query))
       );
 
       if (matchingItems.length > 0) {
@@ -486,8 +652,14 @@ ${idx + 1}. **${item.title}**
                 type="url"
                 value={newMediaUrl}
                 onChange={(e) => setNewMediaUrl(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addMediaItem()}
                 placeholder="Media URL..."
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <input
+                type="text"
+                value={newMediaTitle}
+                onChange={(e) => setNewMediaTitle(e.target.value)}
+                placeholder="Title (optional - will use URL metadata if empty)..."
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <div className="relative">
@@ -495,7 +667,6 @@ ${idx + 1}. **${item.title}**
                   type="text"
                   value={newMediaTags}
                   onChange={handleTagInput}
-                  onKeyPress={(e) => e.key === 'Enter' && addMediaItem()}
                   onFocus={() => getCurrentTagInput().length > 0 && setShowTagSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
                   placeholder="Tags (comma-separated)..."
@@ -515,6 +686,13 @@ ${idx + 1}. **${item.title}**
                   </div>
                 )}
               </div>
+              <textarea
+                value={newMediaDescription}
+                onChange={(e) => setNewMediaDescription(e.target.value)}
+                placeholder="Description (optional)..."
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[80px] resize-y"
+                rows="2"
+              />
               <button
                 onClick={addMediaItem}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
@@ -581,10 +759,15 @@ ${idx + 1}. **${item.title}**
                           {item.title}
                           <ExternalLink size={14} />
                         </a>
+                        {item.description && (
+                          <p className="text-sm text-slate-600 mb-2">{item.description}</p>
+                        )}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">
-                            {item.mediaType}
-                          </span>
+                          {item.mediaType !== 'other' && (
+                            <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">
+                              {item.mediaType}
+                            </span>
+                          )}
                           {item.tags && item.tags.map(tag => (
                             <span key={tag} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                               {tag}
@@ -596,12 +779,22 @@ ${idx + 1}. **${item.title}**
                           </span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => deleteMediaItem(item.id)}
-                        className="text-red-500 hover:text-red-700 transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEditModal(item, 'consumed')}
+                          className="text-blue-500 hover:text-blue-700 transition-all"
+                          title="Edit"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => deleteMediaItem(item.id)}
+                          className="text-red-500 hover:text-red-700 transition-all"
+                          title="Delete"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -617,13 +810,44 @@ ${idx + 1}. **${item.title}**
           <div className="bg-white rounded-xl p-6 shadow-md">
             <h2 className="text-xl font-bold mb-4 text-slate-800">Add to Queue</h2>
             <div className="space-y-3">
-              <textarea
+              <input
+                type="url"
                 value={toConsumeInput}
                 onChange={(e) => setToConsumeInput(e.target.value)}
-                placeholder="Paste URLs here (one per line)..."
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 min-h-[150px] font-mono text-sm"
-                rows="8"
+                placeholder="Paste URL here..."
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
               />
+              <input
+                type="text"
+                value={toConsumeTitle}
+                onChange={(e) => setToConsumeTitle(e.target.value)}
+                placeholder="Title (optional - will use URL metadata if empty)..."
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={toConsumeTags}
+                  onChange={handleToConsumeTagInput}
+                  onFocus={() => getCurrentToConsumeTagInput().length > 0 && setShowToConsumeTagSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowToConsumeTagSuggestions(false), 200)}
+                  placeholder="Tags (comma-separated)..."
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+                {showToConsumeTagSuggestions && getTagSuggestions(getCurrentToConsumeTagInput()).length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {getTagSuggestions(getCurrentToConsumeTagInput()).map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => addToConsumeTagSuggestion(tag)}
+                        className="w-full px-4 py-2 text-left hover:bg-purple-50 transition-colors"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={addToConsumeList}
                 className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all flex items-center justify-center gap-2"
@@ -658,22 +882,28 @@ ${idx + 1}. **${item.title}**
                           )}
                           <ExternalLink size={14} />
                         </a>
-                        <span className="text-xs text-slate-500">
-                          Added {new Date(item.dateAdded).toLocaleDateString()}
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {item.tags && item.tags.length > 0 && item.tags.map(tag => (
+                            <span key={tag} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                              {tag}
+                            </span>
+                          ))}
+                          <span className="text-xs text-slate-500">
+                            Added {new Date(item.dateAdded).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => refreshTitle(item.id, 'toConsume')}
-                          className="text-slate-500 hover:text-slate-700 transition-all text-xs px-2 py-1 bg-slate-100 rounded"
-                          title="Refresh title"
-                          disabled={fetchingTitles.has(item.id)}
+                          onClick={() => openEditModal(item, 'toConsume')}
+                          className="text-purple-500 hover:text-purple-700 transition-all"
+                          title="Edit"
                         >
-                          ↻
+                          <Edit2 size={18} />
                         </button>
                         <button
-                          onClick={() => markAsConsumed(item.id)}
-                          className="text-purple-600 hover:text-purple-800 transition-all"
+                          onClick={() => initiateMarkAsConsumed(item.id)}
+                          className="text-green-600 hover:text-green-800 transition-all"
                           title="Mark as consumed"
                         >
                           <Check size={18} />
@@ -681,6 +911,7 @@ ${idx + 1}. **${item.title}**
                         <button
                           onClick={() => deleteToConsumeItem(item.id)}
                           className="text-red-500 hover:text-red-700 transition-all"
+                          title="Delete"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -791,17 +1022,19 @@ ${idx + 1}. **${item.title}**
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="bg-white rounded-lg p-3">
-                    <p className="text-sm font-medium text-slate-700 mb-2">By Type</p>
-                    <div className="space-y-1">
-                      {Object.entries(selectedWeek.statistics.byType).map(([type, count]) => (
-                        <div key={type} className="flex justify-between text-sm">
-                          <span className="text-slate-600">{type}</span>
-                          <span className="font-medium text-slate-800">{count}</span>
-                        </div>
-                      ))}
+                  {Object.entries(selectedWeek.statistics.byType).filter(([type]) => type !== 'other').length > 0 && (
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-sm font-medium text-slate-700 mb-2">By Type</p>
+                      <div className="space-y-1">
+                        {Object.entries(selectedWeek.statistics.byType).filter(([type]) => type !== 'other').map(([type, count]) => (
+                          <div key={type} className="flex justify-between text-sm">
+                            <span className="text-slate-600">{type}</span>
+                            <span className="font-medium text-slate-800">{count}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   {Object.keys(selectedWeek.statistics.byTag).length > 0 && (
                     <div className="bg-white rounded-lg p-3">
                       <p className="text-sm font-medium text-slate-700 mb-2">By Tag</p>
@@ -821,17 +1054,24 @@ ${idx + 1}. **${item.title}**
                   <p className="text-sm font-medium text-slate-700 mb-2">Items</p>
                   <div className="space-y-2">
                     {selectedWeek.items.map(item => (
-                      <div key={item.id} className="flex items-center justify-between py-1 border-b border-slate-100 last:border-0">
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-orange-600 hover:text-orange-800 text-sm flex items-center gap-2"
-                        >
-                          {item.title}
-                          <ExternalLink size={12} />
-                        </a>
-                        <span className="text-xs text-slate-500">{item.mediaType}</span>
+                      <div key={item.id} className="py-2 border-b border-slate-100 last:border-0">
+                        <div className="flex items-center justify-between">
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-orange-600 hover:text-orange-800 text-sm flex items-center gap-2"
+                          >
+                            {item.title}
+                            <ExternalLink size={12} />
+                          </a>
+                          {item.mediaType !== 'other' && (
+                            <span className="text-xs text-slate-500">{item.mediaType}</span>
+                          )}
+                        </div>
+                        {item.description && (
+                          <p className="text-xs text-slate-600 mt-1 pl-1">{item.description}</p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -892,6 +1132,161 @@ ${idx + 1}. **${item.title}**
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Edit Item</h2>
+              <button
+                onClick={closeEditModal}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">URL</label>
+                <input
+                  type="url"
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div className="relative">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  value={editTags}
+                  onChange={handleEditTagInput}
+                  onFocus={() => getCurrentEditTagInput().length > 0 && setShowEditTagSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowEditTagSuggestions(false), 200)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                {showEditTagSuggestions && getTagSuggestions(getCurrentEditTagInput()).length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {getTagSuggestions(getCurrentEditTagInput()).map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => addEditTagSuggestion(tag)}
+                        className="w-full px-4 py-2 text-left hover:bg-blue-50 transition-colors"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {editListType === 'consumed' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[100px] resize-y"
+                    rows="3"
+                  />
+                </div>
+              )}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={saveEditedItem}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={closeEditModal}
+                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Consume Modal - for adding description when marking as consumed */}
+      {consumeModalOpen && consumingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Mark as Consumed</h2>
+              <button
+                onClick={() => {
+                  setConsumeModalOpen(false);
+                  setConsumingItem(null);
+                  setConsumeDescription('');
+                }}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-slate-600 mb-2">
+                <span className="font-medium">Title:</span> {consumingItem.title}
+              </p>
+              <a
+                href={consumingItem.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-purple-600 hover:text-purple-800 flex items-center gap-1"
+              >
+                {consumingItem.url.length > 50 ? consumingItem.url.substring(0, 50) + '...' : consumingItem.url}
+                <ExternalLink size={12} />
+              </a>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Description (optional)
+                </label>
+                <textarea
+                  value={consumeDescription}
+                  onChange={(e) => setConsumeDescription(e.target.value)}
+                  placeholder="Add your thoughts, notes, or summary..."
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 min-h-[100px] resize-y"
+                  rows="3"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmMarkAsConsumed}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                >
+                  <Check size={18} />
+                  Mark as Consumed
+                </button>
+                <button
+                  onClick={() => {
+                    setConsumeModalOpen(false);
+                    setConsumingItem(null);
+                    setConsumeDescription('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
