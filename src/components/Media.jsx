@@ -634,7 +634,7 @@ ${idx + 1}. **${item.title}**
     return items;
   };
 
-  // Search recaps (includes description search)
+  // Search recaps (includes description and tag search)
   const searchRecaps = () => {
     if (!searchQuery.trim()) return [];
 
@@ -645,7 +645,8 @@ ${idx + 1}. **${item.title}**
       const matchingItems = recap.items.filter(item =>
         item.title.toLowerCase().includes(query) ||
         item.url.toLowerCase().includes(query) ||
-        (item.description && item.description.toLowerCase().includes(query))
+        (item.description && item.description.toLowerCase().includes(query)) ||
+        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
       );
 
       if (matchingItems.length > 0) {
@@ -1036,7 +1037,7 @@ ${idx + 1}. **${item.title}**
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search recaps by title..."
+                  placeholder="Search recaps by title, tags, or description..."
                   className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
                 />
               </div>
