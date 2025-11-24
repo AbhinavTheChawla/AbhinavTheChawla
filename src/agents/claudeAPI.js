@@ -2,8 +2,11 @@
  * Utility for making API calls to Claude via proxy server
  */
 
-// Use proxy server endpoint (defaults to localhost:3001 in development)
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001/api/claude';
+// Use proxy server endpoint
+// In development: use localhost:3001 (Express server)
+// In production: use /api/claude (Vercel serverless function)
+const PROXY_URL = import.meta.env.VITE_PROXY_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3001/api/claude' : '/api/claude');
 
 /**
  * Call Claude API with messages via proxy server
@@ -54,8 +57,11 @@ export const callClaude = async (messages, maxTokens = 1000, apiKey = '') => {
   } catch (error) {
     // Provide more specific error messages
     if (error.message === 'Failed to fetch') {
-      console.error('❌ Cannot connect to proxy server. Is it running on port 3001?');
-      throw new Error('Cannot connect to proxy server. Please ensure you started the app with "npm run dev" (not "npm run client")');
+      console.error('❌ Cannot connect to proxy server');
+      const errorMsg = import.meta.env.DEV
+        ? 'Cannot connect to proxy server. Please ensure you started the app with "npm run dev" (not "npm run client")'
+        : 'Cannot connect to API server. Please check your internet connection';
+      throw new Error(errorMsg);
     }
 
     console.error('❌ Error calling Claude API:', error);

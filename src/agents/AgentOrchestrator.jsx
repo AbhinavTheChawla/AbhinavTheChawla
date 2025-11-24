@@ -167,10 +167,13 @@ const AgentOrchestrator = () => {
     try {
       // Step 1: Test proxy server
       console.log('🧪 Testing proxy server health...');
-      const proxyUrl = 'http://localhost:3001';
+      // Use dynamic URL: localhost in dev, /api in production
+      const proxyUrl = import.meta.env.VITE_PROXY_URL ||
+        (import.meta.env.DEV ? 'http://localhost:3001' : '');
+      const healthUrl = import.meta.env.DEV ? `${proxyUrl}/health` : '/api/health';
 
       try {
-        const healthResponse = await fetch(`${proxyUrl}/health`, {
+        const healthResponse = await fetch(healthUrl, {
           method: 'GET',
         });
 
@@ -182,7 +185,10 @@ const AgentOrchestrator = () => {
       } catch (healthError) {
         console.error('❌ Proxy server is not accessible:', healthError);
         setTestStatus('error');
-        setTestMessage('❌ Proxy server not running! Please ensure you started the app with "npm run dev" (not "npm run client").');
+        const errorMsg = import.meta.env.DEV
+          ? '❌ Proxy server not running! Please ensure you started the app with "npm run dev" (not "npm run client").'
+          : '❌ API server not accessible! Please check your internet connection.';
+        setTestMessage(errorMsg);
         return;
       }
 
@@ -213,8 +219,11 @@ const AgentOrchestrator = () => {
       console.error('❌ Test failed:', error);
       setTestStatus('error');
 
-      if (error.message.includes('Cannot connect to proxy server')) {
-        setTestMessage('❌ Cannot connect to proxy server. Start the app with "npm run dev"');
+      if (error.message.includes('Cannot connect to')) {
+        const errorMsg = import.meta.env.DEV
+          ? '❌ Cannot connect to proxy server. Start the app with "npm run dev"'
+          : '❌ Cannot connect to API server. Check your internet connection';
+        setTestMessage(errorMsg);
       } else if (error.message.includes('API key')) {
         setTestMessage(`❌ API Key Error: ${error.message}`);
       } else {
