@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cloud, CloudOff, RefreshCw, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, X, CheckCircle, AlertCircle, Info, Trash2 } from 'lucide-react';
 import useStore from '../store';
 import { syncService } from '../services/syncService';
 import { isSupabaseConfigured } from '../config/supabase.config';
@@ -9,10 +9,12 @@ const SyncSettings = ({ isOpen, onClose }) => {
   const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
   const userId = useStore((state) => state.userId);
   const reloadFromStorage = useStore((state) => state.reloadFromStorage);
+  const updateBlueprint = useStore((state) => state.updateBlueprint);
 
   const [syncStatus, setSyncStatus] = useState('');
   const [syncMessage, setSyncMessage] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const isConfigured = Boolean(supabaseUrl && supabaseAnonKey && userId);
   const isAutoConfigured = isSupabaseConfigured();
@@ -101,6 +103,43 @@ const SyncSettings = ({ isOpen, onClose }) => {
       setSyncMessage(`❌ Download failed: ${error.message}`);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleClearBlueprint = () => {
+    try {
+      // Clear from localStorage
+      localStorage.removeItem('blueprintData');
+
+      // Reset to empty blueprint in store
+      updateBlueprint({
+        dailyMantra: '',
+        dailyMantraDate: '',
+        dailyIntentions: '',
+        weeklyIntentions: '',
+        todoContent: '',
+        lifeNow: {
+          training: '',
+          reading: '',
+          sports: '',
+          practices: [],
+          dailyGoals: []
+        },
+        lifeNextYear: {
+          career: '',
+          reading: '',
+          training: '',
+          activities: '',
+          travel: ''
+        }
+      });
+
+      setSyncStatus('success');
+      setSyncMessage('✅ Blueprint data cleared successfully!');
+      setShowClearConfirm(false);
+    } catch (error) {
+      setSyncStatus('error');
+      setSyncMessage(`❌ Failed to clear blueprint data: ${error.message}`);
     }
   };
 
@@ -263,6 +302,44 @@ CREATE POLICY "Allow all operations" ON user_data FOR ALL USING (true);`}
             )}
           </>
         )}
+
+        {/* Data Management Section */}
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <h4 className="font-semibold text-slate-700 mb-3 text-sm flex items-center gap-2">
+            <Trash2 size={16} className="text-red-500" />
+            Data Management
+          </h4>
+
+          {!showClearConfirm ? (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="w-full bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 border border-red-300"
+            >
+              <Trash2 size={16} />
+              Clear Blueprint Data
+            </button>
+          ) : (
+            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+              <p className="text-sm text-red-800 font-semibold mb-3">
+                ⚠️ Are you sure? This will permanently delete all blueprint data.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClearBlueprint}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
+                >
+                  Yes, Clear Data
+                </button>
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Info Footer */}
         <div className="mt-6 pt-4 border-t border-slate-200">
