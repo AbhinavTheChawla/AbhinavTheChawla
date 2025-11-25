@@ -39,19 +39,19 @@ SIDE HUSTLES:
 ${blueprint.sideHustles?.map(h => `- ${h}`).join('\n') || 'None listed'}
 
 SOCIAL MEDIA STRATEGY:
-X (Twitter): ${blueprint.socialMedia.x || 'Not specified'}
-TikTok: ${blueprint.socialMedia.tiktok || 'Not specified'}
-Reddit: ${blueprint.socialMedia.reddit || 'Not specified'}
-Instagram: ${blueprint.socialMedia.ig || 'Not specified'}
-LinkedIn: ${blueprint.socialMedia.linkedin || 'Not specified'}
-WhatsApp: ${blueprint.socialMedia.whatsapp || 'Not specified'}
-Messenger: ${blueprint.socialMedia.messenger || 'Not specified'}
+X (Twitter): ${blueprint.socialMedia?.x || 'Not specified'}
+TikTok: ${blueprint.socialMedia?.tiktok || 'Not specified'}
+Reddit: ${blueprint.socialMedia?.reddit || 'Not specified'}
+Instagram: ${blueprint.socialMedia?.ig || 'Not specified'}
+LinkedIn: ${blueprint.socialMedia?.linkedin || 'Not specified'}
+WhatsApp: ${blueprint.socialMedia?.whatsapp || 'Not specified'}
+Messenger: ${blueprint.socialMedia?.messenger || 'Not specified'}
 
 SUBSTANCES APPROACH:
-Psychedelics: ${blueprint.substances.psychedelics || 'Not specified'}
-Caffeine: ${blueprint.substances.caffeine || 'Not specified'}
-Pouches: ${blueprint.substances.pouches || 'Not specified'}
-Ketamine: ${blueprint.substances.ketamine || 'Not specified'}
+Psychedelics: ${blueprint.substances?.psychedelics || 'Not specified'}
+Caffeine: ${blueprint.substances?.caffeine || 'Not specified'}
+Pouches: ${blueprint.substances?.pouches || 'Not specified'}
+Ketamine: ${blueprint.substances?.ketamine || 'Not specified'}
 
 USER'S QUESTION:
 ${userQuery}
