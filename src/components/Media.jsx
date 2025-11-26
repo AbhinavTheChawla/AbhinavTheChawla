@@ -114,10 +114,15 @@ const Media = () => {
 
   // Local state
   const [activeSection, setActiveSection] = useState('tracker'); // 'tracker', 'toConsume', 'recap'
+  const [contentType, setContentType] = useState('website'); // 'website' or 'book'
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newMediaTitle, setNewMediaTitle] = useState('');
   const [newMediaTags, setNewMediaTags] = useState('');
   const [newMediaDescription, setNewMediaDescription] = useState('');
+  // Book-specific fields
+  const [bookTitle, setBookTitle] = useState('');
+  const [bookAuthor, setBookAuthor] = useState('');
+  const [bookSection, setBookSection] = useState('');
   const [toConsumeInput, setToConsumeInput] = useState('');
   const [toConsumeTitle, setToConsumeTitle] = useState('');
   const [toConsumeTags, setToConsumeTags] = useState('');
@@ -137,6 +142,10 @@ const Media = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editListType, setEditListType] = useState('consumed'); // 'consumed' or 'toConsume'
   const [showEditTagSuggestions, setShowEditTagSuggestions] = useState(false);
+  // Book edit fields
+  const [editBookTitle, setEditBookTitle] = useState('');
+  const [editBookAuthor, setEditBookAuthor] = useState('');
+  const [editBookSection, setEditBookSection] = useState('');
 
   // Consume modal state (for adding description when marking as consumed)
   const [consumeModalOpen, setConsumeModalOpen] = useState(false);
@@ -229,37 +238,63 @@ const Media = () => {
 
   // Media consumption tracker handlers
   const addMediaItem = async () => {
-    if (!newMediaUrl.trim()) return;
-
     const tags = newMediaTags.split(',').map(tag => tag.trim()).filter(tag => tag);
-    const mediaType = detectMediaType(newMediaUrl);
     const currentWeek = getCurrentWeek();
 
-    // Use custom title if provided, otherwise fetch from URL
-    const title = newMediaTitle.trim() || await fetchWebpageTitle(newMediaUrl.trim());
+    let newItem;
 
-    const newItem = {
-      id: generateId(),
-      url: newMediaUrl.trim(),
-      title: title,
-      tags,
-      mediaType,
-      description: newMediaDescription.trim(),
-      dateAdded: Date.now(),
-      consumedDate: Date.now(),
-      weekNumber: currentWeek,
-      year: new Date().getFullYear()
-    };
+    if (contentType === 'book') {
+      // Book entry
+      if (!bookTitle.trim()) return; // Require at least book title
+
+      newItem = {
+        id: generateId(),
+        contentType: 'book',
+        bookTitle: bookTitle.trim(),
+        bookAuthor: bookAuthor.trim(),
+        bookSection: bookSection.trim(),
+        tags,
+        description: newMediaDescription.trim(),
+        dateAdded: Date.now(),
+        consumedDate: Date.now(),
+        weekNumber: currentWeek,
+        year: new Date().getFullYear()
+      };
+    } else {
+      // Website entry
+      if (!newMediaUrl.trim()) return;
+
+      const mediaType = detectMediaType(newMediaUrl);
+      const title = newMediaTitle.trim() || await fetchWebpageTitle(newMediaUrl.trim());
+
+      newItem = {
+        id: generateId(),
+        contentType: 'website',
+        url: newMediaUrl.trim(),
+        title: title,
+        tags,
+        mediaType,
+        description: newMediaDescription.trim(),
+        dateAdded: Date.now(),
+        consumedDate: Date.now(),
+        weekNumber: currentWeek,
+        year: new Date().getFullYear()
+      };
+    }
 
     updateMediaData({
       ...mediaData,
       consumed: [newItem, ...safeMediaData.consumed]
     });
 
+    // Clear all form fields
     setNewMediaUrl('');
     setNewMediaTitle('');
     setNewMediaTags('');
     setNewMediaDescription('');
+    setBookTitle('');
+    setBookAuthor('');
+    setBookSection('');
   };
 
   const deleteMediaItem = (id) => {
@@ -368,8 +403,14 @@ const Media = () => {
   // Edit item functions
   const openEditModal = (item, listType) => {
     setEditingItem(item);
-    setEditTitle(item.title || '');
-    setEditUrl(item.url || '');
+    if (item.contentType === 'book') {
+      setEditBookTitle(item.bookTitle || '');
+      setEditBookAuthor(item.bookAuthor || '');
+      setEditBookSection(item.bookSection || '');
+    } else {
+      setEditTitle(item.title || '');
+      setEditUrl(item.url || '');
+    }
     setEditTags(item.tags ? item.tags.join(', ') : '');
     setEditDescription(item.description || '');
     setEditListType(listType);
@@ -379,13 +420,26 @@ const Media = () => {
   const saveEditedItem = () => {
     if (!editingItem) return;
 
-    const updatedItem = {
-      ...editingItem,
-      title: editTitle.trim() || editingItem.title,
-      url: editUrl.trim() || editingItem.url,
-      tags: editTags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      description: editDescription.trim()
-    };
+    let updatedItem;
+
+    if (editingItem.contentType === 'book') {
+      updatedItem = {
+        ...editingItem,
+        bookTitle: editBookTitle.trim() || editingItem.bookTitle,
+        bookAuthor: editBookAuthor.trim(),
+        bookSection: editBookSection.trim(),
+        tags: editTags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        description: editDescription.trim()
+      };
+    } else {
+      updatedItem = {
+        ...editingItem,
+        title: editTitle.trim() || editingItem.title,
+        url: editUrl.trim() || editingItem.url,
+        tags: editTags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        description: editDescription.trim()
+      };
+    }
 
     if (editListType === 'consumed') {
       const updatedList = safeMediaData.consumed.map(i =>
@@ -415,6 +469,9 @@ const Media = () => {
     setEditUrl('');
     setEditTags('');
     setEditDescription('');
+    setEditBookTitle('');
+    setEditBookAuthor('');
+    setEditBookSection('');
     setShowEditTagSuggestions(false);
   };
 
@@ -585,14 +642,27 @@ ${Object.keys(recap.statistics.byTag).length > 0 ? `## By Tag
 ${Object.entries(recap.statistics.byTag).map(([tag, count]) => `- ${tag}: ${count}`).join('\n')}` : ''}
 
 ## Consumed Media
-${recap.items.map((item, idx) => `
+${recap.items.map((item, idx) => {
+  if (item.contentType === 'book') {
+    return `
+${idx + 1}. **${item.bookTitle}**
+   ${item.bookAuthor ? `- Author: ${item.bookAuthor}` : ''}
+   ${item.bookSection ? `- Section: ${item.bookSection}` : ''}
+   ${item.tags && item.tags.length > 0 ? `- Tags: ${item.tags.join(', ')}` : ''}
+   ${item.description ? `- Description: ${item.description}` : ''}
+   - Date: ${new Date(item.consumedDate).toLocaleDateString()}
+`;
+  } else {
+    return `
 ${idx + 1}. **${item.title}**
    - URL: ${item.url}
    ${item.mediaType !== 'other' ? `- Type: ${item.mediaType}` : ''}
    ${item.tags && item.tags.length > 0 ? `- Tags: ${item.tags.join(', ')}` : ''}
    ${item.description ? `- Description: ${item.description}` : ''}
    - Date: ${new Date(item.consumedDate).toLocaleDateString()}
-`).join('\n')}
+`;
+  }
+}).join('\n')}
 `;
 
     // Create download
@@ -642,12 +712,24 @@ ${idx + 1}. **${item.title}**
     const results = [];
 
     safeMediaData.weeklyRecaps.forEach(recap => {
-      const matchingItems = recap.items.filter(item =>
-        item.title.toLowerCase().includes(query) ||
-        item.url.toLowerCase().includes(query) ||
-        (item.description && item.description.toLowerCase().includes(query)) ||
-        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
-      );
+      const matchingItems = recap.items.filter(item => {
+        if (item.contentType === 'book') {
+          return (
+            item.bookTitle.toLowerCase().includes(query) ||
+            (item.bookAuthor && item.bookAuthor.toLowerCase().includes(query)) ||
+            (item.bookSection && item.bookSection.toLowerCase().includes(query)) ||
+            (item.description && item.description.toLowerCase().includes(query)) ||
+            (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
+          );
+        } else {
+          return (
+            item.title.toLowerCase().includes(query) ||
+            item.url.toLowerCase().includes(query) ||
+            (item.description && item.description.toLowerCase().includes(query)) ||
+            (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
+          );
+        }
+      });
 
       if (matchingItems.length > 0) {
         results.push({
@@ -737,20 +819,74 @@ ${idx + 1}. **${item.title}**
           <div className="bg-white rounded-xl p-6 shadow-md">
             <h2 className="text-xl font-bold mb-4 text-slate-800">Add Consumed Media</h2>
             <div className="space-y-3">
-              <input
-                type="url"
-                value={newMediaUrl}
-                onChange={(e) => setNewMediaUrl(e.target.value)}
-                placeholder="Media URL..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-              <input
-                type="text"
-                value={newMediaTitle}
-                onChange={(e) => setNewMediaTitle(e.target.value)}
-                placeholder="Title (optional - will use URL metadata if empty)..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
+              {/* Content Type Selector */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setContentType('website')}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                    contentType === 'website'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Website
+                </button>
+                <button
+                  onClick={() => setContentType('book')}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                    contentType === 'book'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Book
+                </button>
+              </div>
+
+              {/* Conditional Fields based on Content Type */}
+              {contentType === 'website' ? (
+                <>
+                  <input
+                    type="url"
+                    value={newMediaUrl}
+                    onChange={(e) => setNewMediaUrl(e.target.value)}
+                    placeholder="Media URL..."
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <input
+                    type="text"
+                    value={newMediaTitle}
+                    onChange={(e) => setNewMediaTitle(e.target.value)}
+                    placeholder="Title (optional - will use URL metadata if empty)..."
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={bookTitle}
+                    onChange={(e) => setBookTitle(e.target.value)}
+                    placeholder="Book Title..."
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <input
+                    type="text"
+                    value={bookAuthor}
+                    onChange={(e) => setBookAuthor(e.target.value)}
+                    placeholder="Author (optional)..."
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <input
+                    type="text"
+                    value={bookSection}
+                    onChange={(e) => setBookSection(e.target.value)}
+                    placeholder="Section (optional)..."
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </>
+              )}
+
               <div className="relative">
                 <input
                   type="text"
@@ -787,7 +923,7 @@ ${idx + 1}. **${item.title}**
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
               >
                 <Plus size={18} />
-                Add Media
+                Add {contentType === 'book' ? 'Book' : 'Media'}
               </button>
             </div>
           </div>
@@ -839,20 +975,38 @@ ${idx + 1}. **${item.title}**
                   <div key={item.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 mb-2"
-                        >
-                          {item.title}
-                          <ExternalLink size={14} />
-                        </a>
+                        {item.contentType === 'book' ? (
+                          <>
+                            <div className="text-blue-600 font-medium mb-2">
+                              {item.bookTitle}
+                            </div>
+                            {item.bookAuthor && (
+                              <p className="text-sm text-slate-600 mb-1">
+                                <span className="font-medium">Author:</span> {item.bookAuthor}
+                              </p>
+                            )}
+                            {item.bookSection && (
+                              <p className="text-sm text-slate-600 mb-2">
+                                <span className="font-medium">Section:</span> {item.bookSection}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 mb-2"
+                          >
+                            {item.title}
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
                         {item.description && (
                           <p className="text-sm text-slate-600 mb-2">{item.description}</p>
                         )}
                         <div className="flex items-center gap-2 flex-wrap">
-                          {item.mediaType !== 'other' && (
+                          {item.mediaType && item.mediaType !== 'other' && (
                             <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">
                               {item.mediaType}
                             </span>
@@ -1055,16 +1209,23 @@ ${idx + 1}. **${item.title}**
                         </p>
                         <div className="space-y-1">
                           {items.map(item => (
-                            <a
-                              key={item.id}
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-orange-600 hover:text-orange-800 flex items-center gap-2 block"
-                            >
-                              {item.title}
-                              <ExternalLink size={12} />
-                            </a>
+                            item.contentType === 'book' ? (
+                              <div key={item.id} className="text-sm text-orange-600 flex items-center gap-2">
+                                {item.bookTitle}
+                                {item.bookAuthor && <span className="text-slate-500">by {item.bookAuthor}</span>}
+                              </div>
+                            ) : (
+                              <a
+                                key={item.id}
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-orange-600 hover:text-orange-800 flex items-center gap-2 block"
+                              >
+                                {item.title}
+                                <ExternalLink size={12} />
+                              </a>
+                            )
                           ))}
                         </div>
                       </div>
@@ -1145,16 +1306,23 @@ ${idx + 1}. **${item.title}**
                     {selectedWeek.items.map(item => (
                       <div key={item.id} className="py-2 border-b border-slate-100 last:border-0">
                         <div className="flex items-center justify-between">
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-orange-600 hover:text-orange-800 text-sm flex items-center gap-2"
-                          >
-                            {item.title}
-                            <ExternalLink size={12} />
-                          </a>
-                          {item.mediaType !== 'other' && (
+                          {item.contentType === 'book' ? (
+                            <div className="text-orange-600 text-sm">
+                              {item.bookTitle}
+                              {item.bookAuthor && <span className="text-slate-500 ml-2">by {item.bookAuthor}</span>}
+                            </div>
+                          ) : (
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-orange-600 hover:text-orange-800 text-sm flex items-center gap-2"
+                            >
+                              {item.title}
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
+                          {item.mediaType && item.mediaType !== 'other' && (
                             <span className="text-xs text-slate-500">{item.mediaType}</span>
                           )}
                         </div>
@@ -1227,11 +1395,11 @@ ${idx + 1}. **${item.title}**
       )}
 
       {/* Edit Modal */}
-      {editModalOpen && (
+      {editModalOpen && editingItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-800">Edit Item</h2>
+              <h2 className="text-xl font-bold text-slate-800">Edit {editingItem.contentType === 'book' ? 'Book' : 'Item'}</h2>
               <button
                 onClick={closeEditModal}
                 className="text-slate-500 hover:text-slate-700"
@@ -1240,24 +1408,58 @@ ${idx + 1}. **${item.title}**
               </button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">URL</label>
-                <input
-                  type="url"
-                  value={editUrl}
-                  onChange={(e) => setEditUrl(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
+              {editingItem.contentType === 'book' ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Book Title</label>
+                    <input
+                      type="text"
+                      value={editBookTitle}
+                      onChange={(e) => setEditBookTitle(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Author</label>
+                    <input
+                      type="text"
+                      value={editBookAuthor}
+                      onChange={(e) => setEditBookAuthor(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Section</label>
+                    <input
+                      type="text"
+                      value={editBookSection}
+                      onChange={(e) => setEditBookSection(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">URL</label>
+                    <input
+                      type="url"
+                      value={editUrl}
+                      onChange={(e) => setEditUrl(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                </>
+              )}
               <div className="relative">
                 <label className="block text-sm font-medium text-slate-700 mb-1">Tags (comma-separated)</label>
                 <input
