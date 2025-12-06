@@ -235,7 +235,8 @@ const useStore = create((set, get) => ({
   mediaData: loadFromStorage('mediaData', {
     consumed: [], // Array of consumed media items
     toConsume: [], // Array of media to consume (consolidated read/watch list)
-    weeklyRecaps: [] // Array of weekly recaps
+    weeklyRecaps: [], // Array of weekly recaps
+    frameworks: [] // Array of frameworks: { id, title, description, dateAdded }
   }),
 
   // Actions for Wardrobe
@@ -508,7 +509,8 @@ const useStore = create((set, get) => ({
       mediaData: loadFromStorage('mediaData', {
         consumed: [],
         toConsume: [],
-        weeklyRecaps: []
+        weeklyRecaps: [],
+        frameworks: []
       })
     });
   }
