@@ -11,7 +11,8 @@ const Media = () => {
   const safeMediaData = {
     consumed: mediaData?.consumed || [],
     toConsume: mediaData?.toConsume || [],
-    weeklyRecaps: mediaData?.weeklyRecaps || []
+    weeklyRecaps: mediaData?.weeklyRecaps || [],
+    frameworks: mediaData?.frameworks || []
   };
 
   // Listen for cross-device sync events
@@ -232,7 +233,7 @@ const Media = () => {
   }, [safeMediaData.consumed, safeMediaData.weeklyRecaps, mediaData, updateMediaData]);
 
   // Local state
-  const [activeSection, setActiveSection] = useState('tracker'); // 'tracker', 'toConsume', 'recap'
+  const [activeSection, setActiveSection] = useState('tracker'); // 'tracker', 'toConsume', 'recap', 'frameworks'
   const [contentType, setContentType] = useState('website'); // 'website' or 'book'
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newMediaTitle, setNewMediaTitle] = useState('');
@@ -270,6 +271,26 @@ const Media = () => {
   const [consumeModalOpen, setConsumeModalOpen] = useState(false);
   const [consumingItem, setConsumingItem] = useState(null);
   const [consumeDescription, setConsumeDescription] = useState('');
+
+  // Frameworks state
+  const [newFrameworkTitle, setNewFrameworkTitle] = useState('');
+  const [newFrameworkDescription, setNewFrameworkDescription] = useState('');
+  const [editingFramework, setEditingFramework] = useState(null);
+  const [frameworkModalOpen, setFrameworkModalOpen] = useState(false);
+  const [editFrameworkTitle, setEditFrameworkTitle] = useState('');
+  const [editFrameworkDescription, setEditFrameworkDescription] = useState('');
+
+  // Framework tagging state
+  const [frameworkTagModalOpen, setFrameworkTagModalOpen] = useState(false);
+  const [taggingItem, setTaggingItem] = useState(null);
+  const [selectedFramework, setSelectedFramework] = useState('');
+  const [frameworkLinkDescription, setFrameworkLinkDescription] = useState('');
+
+  // Weekly recap filtering state
+  const [filterType, setFilterType] = useState('tag'); // 'tag' or 'framework'
+  const [filterFramework, setFilterFramework] = useState('all');
+  const [viewingItem, setViewingItem] = useState(null);
+  const [viewItemModalOpen, setViewItemModalOpen] = useState(false);
 
   // Utility functions
   const getWeekNumber = (date) => {
@@ -823,32 +844,44 @@ ${idx + 1}. **${item.title}**
     return items;
   };
 
-  // Search recaps (includes description and tag search)
+  // Search recaps (includes description and tag search, and framework filtering)
   const searchRecaps = () => {
-    if (!searchQuery.trim()) return [];
+    if (!searchQuery.trim() && filterType !== 'framework') return [];
 
     const query = searchQuery.toLowerCase().trim();
     const results = [];
 
     safeMediaData.weeklyRecaps.forEach(recap => {
-      const matchingItems = recap.items.filter(item => {
-        if (item.contentType === 'book') {
-          return (
-            item.bookTitle.toLowerCase().includes(query) ||
-            (item.bookAuthor && item.bookAuthor.toLowerCase().includes(query)) ||
-            (item.bookSection && item.bookSection.toLowerCase().includes(query)) ||
-            (item.description && item.description.toLowerCase().includes(query)) ||
-            (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
-          );
-        } else {
-          return (
-            item.title.toLowerCase().includes(query) ||
-            item.url.toLowerCase().includes(query) ||
-            (item.description && item.description.toLowerCase().includes(query)) ||
-            (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
-          );
-        }
-      });
+      let matchingItems = recap.items;
+
+      // Apply search query filter
+      if (query) {
+        matchingItems = matchingItems.filter(item => {
+          if (item.contentType === 'book') {
+            return (
+              item.bookTitle.toLowerCase().includes(query) ||
+              (item.bookAuthor && item.bookAuthor.toLowerCase().includes(query)) ||
+              (item.bookSection && item.bookSection.toLowerCase().includes(query)) ||
+              (item.description && item.description.toLowerCase().includes(query)) ||
+              (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
+            );
+          } else {
+            return (
+              item.title.toLowerCase().includes(query) ||
+              item.url.toLowerCase().includes(query) ||
+              (item.description && item.description.toLowerCase().includes(query)) ||
+              (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
+            );
+          }
+        });
+      }
+
+      // Apply framework filter
+      if (filterType === 'framework' && filterFramework !== 'all') {
+        matchingItems = matchingItems.filter(item => {
+          return item.frameworkTags && item.frameworkTags.some(ft => ft.frameworkId === filterFramework);
+        });
+      }
 
       if (matchingItems.length > 0) {
         results.push({
@@ -896,6 +929,173 @@ ${idx + 1}. **${item.title}**
     return lastComma >= 0 ? newMediaTags.slice(lastComma + 1).trim() : newMediaTags.trim();
   };
 
+  // Framework management functions
+  const addFramework = () => {
+    if (!newFrameworkTitle.trim()) return;
+
+    const newFramework = {
+      id: generateId(),
+      title: newFrameworkTitle.trim(),
+      description: newFrameworkDescription.trim(),
+      dateAdded: Date.now()
+    };
+
+    updateMediaData({
+      ...mediaData,
+      frameworks: [newFramework, ...safeMediaData.frameworks]
+    });
+
+    setNewFrameworkTitle('');
+    setNewFrameworkDescription('');
+  };
+
+  const deleteFramework = (id) => {
+    updateMediaData({
+      ...mediaData,
+      frameworks: safeMediaData.frameworks.filter(f => f.id !== id)
+    });
+  };
+
+  const openFrameworkEditModal = (framework) => {
+    setEditingFramework(framework);
+    setEditFrameworkTitle(framework.title);
+    setEditFrameworkDescription(framework.description);
+    setFrameworkModalOpen(true);
+  };
+
+  const saveEditedFramework = () => {
+    if (!editingFramework) return;
+
+    const updatedFramework = {
+      ...editingFramework,
+      title: editFrameworkTitle.trim() || editingFramework.title,
+      description: editFrameworkDescription.trim()
+    };
+
+    const updatedList = safeMediaData.frameworks.map(f =>
+      f.id === editingFramework.id ? updatedFramework : f
+    );
+
+    updateMediaData({
+      ...mediaData,
+      frameworks: updatedList
+    });
+
+    closeFrameworkEditModal();
+  };
+
+  const closeFrameworkEditModal = () => {
+    setFrameworkModalOpen(false);
+    setEditingFramework(null);
+    setEditFrameworkTitle('');
+    setEditFrameworkDescription('');
+  };
+
+  // Framework tagging functions
+  const openFrameworkTagModal = (item) => {
+    setTaggingItem(item);
+    setSelectedFramework('');
+    setFrameworkLinkDescription('');
+    setFrameworkTagModalOpen(true);
+  };
+
+  const addFrameworkTag = () => {
+    if (!taggingItem || !selectedFramework) return;
+
+    // Check if already at max 5 frameworks
+    const currentFrameworks = taggingItem.frameworkTags || [];
+    if (currentFrameworks.length >= 5) {
+      alert('Maximum 5 frameworks per item');
+      return;
+    }
+
+    // Check if framework already tagged
+    if (currentFrameworks.some(ft => ft.frameworkId === selectedFramework)) {
+      alert('This framework is already tagged to this item');
+      return;
+    }
+
+    const updatedItem = {
+      ...taggingItem,
+      frameworkTags: [
+        ...(taggingItem.frameworkTags || []),
+        {
+          frameworkId: selectedFramework,
+          description: frameworkLinkDescription.trim()
+        }
+      ]
+    };
+
+    const updatedList = safeMediaData.consumed.map(i =>
+      i.id === taggingItem.id ? updatedItem : i
+    );
+
+    updateMediaData({
+      ...mediaData,
+      consumed: updatedList
+    });
+
+    setSelectedFramework('');
+    setFrameworkLinkDescription('');
+    setFrameworkTagModalOpen(false);
+    setTaggingItem(null);
+  };
+
+  const removeFrameworkTag = (itemId, frameworkId) => {
+    const item = safeMediaData.consumed.find(i => i.id === itemId);
+    if (!item) return;
+
+    const updatedItem = {
+      ...item,
+      frameworkTags: (item.frameworkTags || []).filter(ft => ft.frameworkId !== frameworkId)
+    };
+
+    const updatedList = safeMediaData.consumed.map(i =>
+      i.id === itemId ? updatedItem : i
+    );
+
+    updateMediaData({
+      ...mediaData,
+      consumed: updatedList
+    });
+  };
+
+  const editFrameworkTag = (itemId, frameworkId, newDescription) => {
+    const item = safeMediaData.consumed.find(i => i.id === itemId);
+    if (!item) return;
+
+    const updatedItem = {
+      ...item,
+      frameworkTags: (item.frameworkTags || []).map(ft =>
+        ft.frameworkId === frameworkId ? { ...ft, description: newDescription } : ft
+      )
+    };
+
+    const updatedList = safeMediaData.consumed.map(i =>
+      i.id === itemId ? updatedItem : i
+    );
+
+    updateMediaData({
+      ...mediaData,
+      consumed: updatedList
+    });
+  };
+
+  const getFrameworkById = (id) => {
+    return safeMediaData.frameworks.find(f => f.id === id);
+  };
+
+  // View item modal functions
+  const openViewItemModal = (item) => {
+    setViewingItem(item);
+    setViewItemModalOpen(true);
+  };
+
+  const closeViewItemModal = () => {
+    setViewItemModalOpen(false);
+    setViewingItem(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Section Navigation */}
@@ -919,6 +1119,16 @@ ${idx + 1}. **${item.title}**
           }`}
         >
           To Consume
+        </button>
+        <button
+          onClick={() => setActiveSection('frameworks')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            activeSection === 'frameworks'
+              ? 'bg-green-600 text-white shadow-md'
+              : 'bg-white text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          Frameworks
         </button>
         <button
           onClick={() => setActiveSection('recap')}
@@ -1124,7 +1334,7 @@ ${idx + 1}. **${item.title}**
                         {item.description && (
                           <p className="text-sm text-slate-600 mb-2">{item.description}</p>
                         )}
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
                           {item.mediaType && item.mediaType !== 'other' && (
                             <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">
                               {item.mediaType}
@@ -1140,8 +1350,40 @@ ${idx + 1}. **${item.title}**
                             {new Date(item.consumedDate).toLocaleDateString()}
                           </span>
                         </div>
+                        {/* Framework tags display */}
+                        {item.frameworkTags && item.frameworkTags.length > 0 && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-slate-600 font-medium">Frameworks:</span>
+                            {item.frameworkTags.map((ft) => {
+                              const framework = getFrameworkById(ft.frameworkId);
+                              return framework ? (
+                                <span key={ft.frameworkId} className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
+                                  {framework.title}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm('Remove this framework tag?')) {
+                                        removeFrameworkTag(item.id, ft.frameworkId);
+                                      }
+                                    }}
+                                    className="hover:text-green-900"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => openFrameworkTagModal(item)}
+                          className="text-green-600 hover:text-green-800 transition-all"
+                          title="Tag framework"
+                        >
+                          <Tag size={18} />
+                        </button>
                         <button
                           onClick={() => openEditModal(item, 'consumed')}
                           className="text-blue-500 hover:text-blue-700 transition-all"
@@ -1287,6 +1529,84 @@ ${idx + 1}. **${item.title}**
         </div>
       )}
 
+      {/* Frameworks Tab */}
+      {activeSection === 'frameworks' && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl p-6 shadow-md">
+            <h2 className="text-xl font-bold mb-4 text-slate-800">Add Framework</h2>
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={newFrameworkTitle}
+                onChange={(e) => setNewFrameworkTitle(e.target.value)}
+                placeholder="Framework Title..."
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+              <textarea
+                value={newFrameworkDescription}
+                onChange={(e) => setNewFrameworkDescription(e.target.value)}
+                placeholder="Framework Description..."
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[100px] resize-y"
+                rows="3"
+              />
+              <button
+                onClick={addFramework}
+                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={18} />
+                Add Framework
+              </button>
+            </div>
+          </div>
+
+          {/* Frameworks List */}
+          <div className="bg-white rounded-xl p-6 shadow-md">
+            <h3 className="text-lg font-bold mb-4 text-slate-800">Saved Frameworks ({safeMediaData.frameworks.length})</h3>
+            <div className="space-y-3">
+              {safeMediaData.frameworks.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">No frameworks saved yet</p>
+              ) : (
+                safeMediaData.frameworks.map(framework => (
+                  <div key={framework.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <h4 className="text-green-600 font-medium mb-2">{framework.title}</h4>
+                        {framework.description && (
+                          <p className="text-sm text-slate-600 mb-2">{framework.description}</p>
+                        )}
+                        <span className="text-xs text-slate-500">
+                          Added {new Date(framework.dateAdded).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openFrameworkEditModal(framework)}
+                          className="text-green-500 hover:text-green-700 transition-all"
+                          title="Edit"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Delete this framework?')) {
+                              deleteFramework(framework.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 transition-all"
+                          title="Delete"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Weekly Recap */}
       {activeSection === 'recap' && (
         <div className="space-y-4">
@@ -1302,8 +1622,8 @@ ${idx + 1}. **${item.title}**
               </button>
             </div>
 
-            {/* Search */}
-            <div className="mb-4">
+            {/* Search and Filter */}
+            <div className="mb-4 space-y-3">
               <div className="relative">
                 <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                 <input
@@ -1315,8 +1635,50 @@ ${idx + 1}. **${item.title}**
                 />
               </div>
 
+              {/* Filter by Framework or Tag */}
+              <div className="flex gap-2 items-center flex-wrap">
+                <span className="text-sm font-medium text-slate-700">Filter by:</span>
+                <button
+                  onClick={() => setFilterType('tag')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    filterType === 'tag'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Tag
+                </button>
+                <button
+                  onClick={() => setFilterType('framework')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    filterType === 'framework'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Framework
+                </button>
+                {filterType === 'framework' && safeMediaData.frameworks.length > 0 && (
+                  <>
+                    <select
+                      value={filterFramework}
+                      onChange={(e) => setFilterFramework(e.target.value)}
+                      className="px-3 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    >
+                      <option value="all">All Frameworks</option>
+                      {safeMediaData.frameworks.map(framework => (
+                        <option key={framework.id} value={framework.id}>
+                          {framework.title}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+            </div>
+
               {/* Search Results */}
-              {searchQuery.trim() && (
+              {(searchQuery.trim() || (filterType === 'framework' && filterFramework !== 'all')) && (
                 <div className="mt-3 space-y-2">
                   {searchRecaps().length === 0 ? (
                     <p className="text-slate-500 text-sm">No results found</p>
@@ -1328,23 +1690,23 @@ ${idx + 1}. **${item.title}**
                         </p>
                         <div className="space-y-1">
                           {items.map(item => (
-                            item.contentType === 'book' ? (
-                              <div key={item.id} className="text-sm text-orange-600 flex items-center gap-2">
-                                {item.bookTitle}
-                                {item.bookAuthor && <span className="text-slate-500">by {item.bookAuthor}</span>}
-                              </div>
-                            ) : (
-                              <a
-                                key={item.id}
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-orange-600 hover:text-orange-800 flex items-center gap-2 block"
-                              >
-                                {item.title}
-                                <ExternalLink size={12} />
-                              </a>
-                            )
+                            <div
+                              key={item.id}
+                              onClick={() => openViewItemModal(item)}
+                              className="text-sm text-orange-600 hover:text-orange-800 cursor-pointer flex items-center gap-2"
+                            >
+                              {item.contentType === 'book' ? (
+                                <>
+                                  {item.bookTitle}
+                                  {item.bookAuthor && <span className="text-slate-500">by {item.bookAuthor}</span>}
+                                </>
+                              ) : (
+                                <>
+                                  {item.title}
+                                  <Search size={12} />
+                                </>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -1695,6 +2057,259 @@ ${idx + 1}. **${item.title}**
                   className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Framework Edit Modal */}
+      {frameworkModalOpen && editingFramework && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Edit Framework</h2>
+              <button onClick={closeFrameworkEditModal} className="text-slate-500 hover:text-slate-700">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editFrameworkTitle}
+                  onChange={(e) => setEditFrameworkTitle(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <textarea
+                  value={editFrameworkDescription}
+                  onChange={(e) => setEditFrameworkDescription(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[100px] resize-y"
+                  rows="3"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={saveEditedFramework}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={closeFrameworkEditModal}
+                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Framework Tag Modal */}
+      {frameworkTagModalOpen && taggingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 shadow-xl max-w-lg w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Tag Framework</h2>
+              <button
+                onClick={() => {
+                  setFrameworkTagModalOpen(false);
+                  setTaggingItem(null);
+                  setSelectedFramework('');
+                  setFrameworkLinkDescription('');
+                }}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-slate-600 mb-2">
+                <span className="font-medium">Item:</span>{' '}
+                {taggingItem.contentType === 'book' ? taggingItem.bookTitle : taggingItem.title}
+              </p>
+              <p className="text-xs text-slate-500">
+                Current frameworks: {(taggingItem.frameworkTags || []).length} / 5
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Select Framework
+                </label>
+                <select
+                  value={selectedFramework}
+                  onChange={(e) => setSelectedFramework(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                >
+                  <option value="">Choose a framework...</option>
+                  {safeMediaData.frameworks.map(framework => (
+                    <option key={framework.id} value={framework.id}>
+                      {framework.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  How does this framework relate to this media? (optional)
+                </label>
+                <textarea
+                  value={frameworkLinkDescription}
+                  onChange={(e) => setFrameworkLinkDescription(e.target.value)}
+                  placeholder="Describe the connection..."
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[80px] resize-y"
+                  rows="2"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={addFrameworkTag}
+                  disabled={!selectedFramework}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add Framework
+                </button>
+                <button
+                  onClick={() => {
+                    setFrameworkTagModalOpen(false);
+                    setTaggingItem(null);
+                    setSelectedFramework('');
+                    setFrameworkLinkDescription('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Item Modal */}
+      {viewItemModalOpen && viewingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-800">Media Details</h2>
+              <button onClick={closeViewItemModal} className="text-slate-500 hover:text-slate-700">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              {/* Title and URL */}
+              {viewingItem.contentType === 'book' ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Book Title</label>
+                    <p className="text-lg text-slate-800">{viewingItem.bookTitle}</p>
+                  </div>
+                  {viewingItem.bookAuthor && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Author</label>
+                      <p className="text-slate-800">{viewingItem.bookAuthor}</p>
+                    </div>
+                  )}
+                  {viewingItem.bookSection && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Section</label>
+                      <p className="text-slate-800">{viewingItem.bookSection}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                    <p className="text-lg text-slate-800">{viewingItem.title}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">URL</label>
+                    <a
+                      href={viewingItem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-orange-600 hover:text-orange-800 flex items-center gap-2 break-all"
+                    >
+                      {viewingItem.url}
+                      <ExternalLink size={16} />
+                    </a>
+                  </div>
+                </>
+              )}
+
+              {/* Media Type */}
+              {viewingItem.mediaType && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                  <span className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-full">
+                    {viewingItem.mediaType}
+                  </span>
+                </div>
+              )}
+
+              {/* Description */}
+              {viewingItem.description && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                  <p className="text-slate-800 whitespace-pre-wrap">{viewingItem.description}</p>
+                </div>
+              )}
+
+              {/* Tags */}
+              {viewingItem.tags && viewingItem.tags.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Tags</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {viewingItem.tags.map(tag => (
+                      <span key={tag} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Framework Tags */}
+              {viewingItem.frameworkTags && viewingItem.frameworkTags.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Frameworks</label>
+                  <div className="space-y-2">
+                    {viewingItem.frameworkTags.map((ft) => {
+                      const framework = getFrameworkById(ft.frameworkId);
+                      return framework ? (
+                        <div key={ft.frameworkId} className="border border-green-200 rounded-lg p-3 bg-green-50">
+                          <p className="font-medium text-green-700 mb-1">{framework.title}</p>
+                          {ft.description && (
+                            <p className="text-sm text-slate-600">{ft.description}</p>
+                          )}
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Consumed Date</label>
+                <p className="text-slate-800">{new Date(viewingItem.consumedDate).toLocaleDateString()}</p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={closeViewItemModal}
+                  className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
+                >
+                  Close
                 </button>
               </div>
             </div>
