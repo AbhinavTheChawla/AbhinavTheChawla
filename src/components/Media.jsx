@@ -292,6 +292,9 @@ const Media = () => {
   const [viewingItem, setViewingItem] = useState(null);
   const [viewItemModalOpen, setViewItemModalOpen] = useState(false);
 
+  // Framework tagging during add
+  const [newItemFrameworks, setNewItemFrameworks] = useState([]);
+
   // Utility functions
   const getWeekNumber = (date) => {
     const d = new Date(date);
@@ -395,6 +398,7 @@ const Media = () => {
         bookSection: bookSection.trim(),
         tags,
         description: newMediaDescription.trim(),
+        frameworkTags: newItemFrameworks,
         dateAdded: Date.now(),
         consumedDate: Date.now(),
         weekNumber: currentWeek,
@@ -415,6 +419,7 @@ const Media = () => {
         tags,
         mediaType,
         description: newMediaDescription.trim(),
+        frameworkTags: newItemFrameworks,
         dateAdded: Date.now(),
         consumedDate: Date.now(),
         weekNumber: currentWeek,
@@ -435,6 +440,7 @@ const Media = () => {
     setBookTitle('');
     setBookAuthor('');
     setBookSection('');
+    setNewItemFrameworks([]);
   };
 
   const deleteMediaItem = (id) => {
@@ -846,7 +852,7 @@ ${idx + 1}. **${item.title}**
 
   // Search recaps (includes description and tag search, and framework filtering)
   const searchRecaps = () => {
-    if (!searchQuery.trim() && filterType !== 'framework') return [];
+    if (!searchQuery.trim() && filterType !== 'framework' && filterType !== 'tag') return [];
 
     const query = searchQuery.toLowerCase().trim();
     const results = [];
@@ -873,6 +879,13 @@ ${idx + 1}. **${item.title}**
               (item.tags && item.tags.some(tag => tag.toLowerCase().includes(query)))
             );
           }
+        });
+      }
+
+      // Apply tag filter
+      if (filterType === 'tag' && filterTag !== 'all') {
+        matchingItems = matchingItems.filter(item => {
+          return item.tags && item.tags.includes(filterTag);
         });
       }
 
@@ -1247,6 +1260,67 @@ ${idx + 1}. **${item.title}**
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[80px] resize-y"
                 rows="2"
               />
+
+              {/* Framework tagging */}
+              {safeMediaData.frameworks.length > 0 && (
+                <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Tag Frameworks (optional, up to 5)
+                  </label>
+                  <div className="space-y-2">
+                    {newItemFrameworks.map((ft, idx) => {
+                      const framework = getFrameworkById(ft.frameworkId);
+                      return framework ? (
+                        <div key={idx} className="flex items-start gap-2 bg-white p-2 rounded border border-green-200">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-700">{framework.title}</p>
+                            <input
+                              type="text"
+                              value={ft.description}
+                              onChange={(e) => {
+                                const updated = [...newItemFrameworks];
+                                updated[idx].description = e.target.value;
+                                setNewItemFrameworks(updated);
+                              }}
+                              placeholder="How does this framework relate?"
+                              className="w-full mt-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-green-400"
+                            />
+                          </div>
+                          <button
+                            onClick={() => {
+                              setNewItemFrameworks(newItemFrameworks.filter((_, i) => i !== idx));
+                            }}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : null;
+                    })}
+                    {newItemFrameworks.length < 5 && (
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value && !newItemFrameworks.some(f => f.frameworkId === e.target.value)) {
+                            setNewItemFrameworks([...newItemFrameworks, { frameworkId: e.target.value, description: '' }]);
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                      >
+                        <option value="">+ Add framework tag...</option>
+                        {safeMediaData.frameworks
+                          .filter(f => !newItemFrameworks.some(ft => ft.frameworkId === f.id))
+                          .map(framework => (
+                            <option key={framework.id} value={framework.id}>
+                              {framework.title}
+                            </option>
+                          ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={addMediaItem}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
@@ -1303,7 +1377,7 @@ ${idx + 1}. **${item.title}**
                 getFilteredConsumedItems().map(item => (
                   <div key={item.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
+                      <div className="flex-1 cursor-pointer" onClick={() => openViewItemModal(item)}>
                         {item.contentType === 'book' ? (
                           <>
                             <div className="text-blue-600 font-medium mb-2">
@@ -1325,6 +1399,7 @@ ${idx + 1}. **${item.title}**
                             href={item.url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 mb-2"
                           >
                             {item.title}
@@ -1658,27 +1733,39 @@ ${idx + 1}. **${item.title}**
                 >
                   Framework
                 </button>
+                {filterType === 'tag' && getAllTags().length > 0 && (
+                  <select
+                    value={filterTag}
+                    onChange={(e) => setFilterTag(e.target.value)}
+                    className="px-3 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  >
+                    <option value="all">All Tags</option>
+                    {getAllTags().map(tag => (
+                      <option key={tag} value={tag}>
+                        {tag}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 {filterType === 'framework' && safeMediaData.frameworks.length > 0 && (
-                  <>
-                    <select
-                      value={filterFramework}
-                      onChange={(e) => setFilterFramework(e.target.value)}
-                      className="px-3 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    >
-                      <option value="all">All Frameworks</option>
-                      {safeMediaData.frameworks.map(framework => (
-                        <option key={framework.id} value={framework.id}>
-                          {framework.title}
-                        </option>
-                      ))}
-                    </select>
-                  </>
+                  <select
+                    value={filterFramework}
+                    onChange={(e) => setFilterFramework(e.target.value)}
+                    className="px-3 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  >
+                    <option value="all">All Frameworks</option>
+                    {safeMediaData.frameworks.map(framework => (
+                      <option key={framework.id} value={framework.id}>
+                        {framework.title}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
             </div>
 
             {/* Search Results */}
-            {(searchQuery.trim() || (filterType === 'framework' && filterFramework !== 'all')) && (
+            {(searchQuery.trim() || (filterType === 'framework' && filterFramework !== 'all') || (filterType === 'tag' && filterTag !== 'all')) && (
               <div className="mt-3 space-y-2">
                 {searchRecaps().length === 0 ? (
                   <p className="text-slate-500 text-sm">No results found</p>
