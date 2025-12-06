@@ -1677,44 +1677,43 @@ ${idx + 1}. **${item.title}**
               </div>
             </div>
 
-              {/* Search Results */}
-              {(searchQuery.trim() || (filterType === 'framework' && filterFramework !== 'all')) && (
-                <div className="mt-3 space-y-2">
-                  {searchRecaps().length === 0 ? (
-                    <p className="text-slate-500 text-sm">No results found</p>
-                  ) : (
-                    searchRecaps().map(({ recap, items }) => (
-                      <div key={recap.id} className="border border-orange-200 rounded-lg p-3 bg-orange-50">
-                        <p className="text-sm font-medium text-slate-700 mb-2">
-                          Week {recap.weekNumber}, {recap.year} ({items.length} matches)
-                        </p>
-                        <div className="space-y-1">
-                          {items.map(item => (
-                            <div
-                              key={item.id}
-                              onClick={() => openViewItemModal(item)}
-                              className="text-sm text-orange-600 hover:text-orange-800 cursor-pointer flex items-center gap-2"
-                            >
-                              {item.contentType === 'book' ? (
-                                <>
-                                  {item.bookTitle}
-                                  {item.bookAuthor && <span className="text-slate-500">by {item.bookAuthor}</span>}
-                                </>
-                              ) : (
-                                <>
-                                  {item.title}
-                                  <Search size={12} />
-                                </>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+            {/* Search Results */}
+            {(searchQuery.trim() || (filterType === 'framework' && filterFramework !== 'all')) && (
+              <div className="mt-3 space-y-2">
+                {searchRecaps().length === 0 ? (
+                  <p className="text-slate-500 text-sm">No results found</p>
+                ) : (
+                  searchRecaps().map(({ recap, items }) => (
+                    <div key={recap.id} className="border border-orange-200 rounded-lg p-3 bg-orange-50">
+                      <p className="text-sm font-medium text-slate-700 mb-2">
+                        Week {recap.weekNumber}, {recap.year} ({items.length} matches)
+                      </p>
+                      <div className="space-y-1">
+                        {items.map(item => (
+                          <div
+                            key={item.id}
+                            onClick={() => openViewItemModal(item)}
+                            className="text-sm text-orange-600 hover:text-orange-800 cursor-pointer flex items-center gap-2"
+                          >
+                            {item.contentType === 'book' ? (
+                              <>
+                                {item.bookTitle}
+                                {item.bookAuthor && <span className="text-slate-500">by {item.bookAuthor}</span>}
+                              </>
+                            ) : (
+                              <>
+                                {item.title}
+                                <Search size={12} />
+                              </>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             {selectedWeek && (
               <div className="border border-orange-200 rounded-lg p-4 bg-orange-50 mb-4">
