@@ -22,8 +22,9 @@ const Food = () => {
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [newRecipeName, setNewRecipeName] = useState('');
   const [newRecipeDescription, setNewRecipeDescription] = useState('');
-  const [newRecipeTag, setNewRecipeTag] = useState('breakfast');
-  const [recipeFilter, setRecipeFilter] = useState('all');
+  const [newRecipeTags, setNewRecipeTags] = useState([]);
+  const [currentTagInput, setCurrentTagInput] = useState('');
+  const [selectedFilters, setSelectedFilters] = useState([]);
 
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   const dayNames = {
@@ -113,12 +114,39 @@ const Food = () => {
     if (newRecipeName.trim()) {
       updateFoodData({
         ...foodData,
-        recipes: [...foodData.recipes, { name: newRecipeName, description: newRecipeDescription, tag: newRecipeTag }]
+        recipes: [...foodData.recipes, { name: newRecipeName, description: newRecipeDescription, tags: newRecipeTags }]
       });
       setNewRecipeName('');
       setNewRecipeDescription('');
-      setNewRecipeTag('breakfast');
+      setNewRecipeTags([]);
+      setCurrentTagInput('');
     }
+  };
+
+  const addTagToNewRecipe = () => {
+    const tag = currentTagInput.trim();
+    if (tag && !newRecipeTags.includes(tag)) {
+      setNewRecipeTags([...newRecipeTags, tag]);
+      setCurrentTagInput('');
+    }
+  };
+
+  const removeTagFromNewRecipe = (tagToRemove) => {
+    setNewRecipeTags(newRecipeTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const addTagToExistingRecipe = (index, tag) => {
+    const recipe = foodData.recipes[index];
+    const currentTags = recipe.tags || [];
+    if (tag && !currentTags.includes(tag)) {
+      updateRecipe(index, 'tags', [...currentTags, tag]);
+    }
+  };
+
+  const removeTagFromExistingRecipe = (index, tagToRemove) => {
+    const recipe = foodData.recipes[index];
+    const currentTags = recipe.tags || [];
+    updateRecipe(index, 'tags', currentTags.filter(tag => tag !== tagToRemove));
   };
 
   const deleteRecipe = (index) => {
@@ -147,6 +175,32 @@ const Food = () => {
       ...foodData,
       inspo: value
     });
+  };
+
+  // Get all unique tags from all recipes
+  const getAllTags = () => {
+    const tagsSet = new Set();
+    foodData.recipes.forEach(recipe => {
+      const recipeTags = recipe.tags || (recipe.tag ? [recipe.tag] : []);
+      recipeTags.forEach(tag => tagsSet.add(tag));
+    });
+    return Array.from(tagsSet).sort();
+  };
+
+  // Toggle filter selection
+  const toggleFilter = (tag) => {
+    if (selectedFilters.includes(tag)) {
+      setSelectedFilters(selectedFilters.filter(f => f !== tag));
+    } else {
+      setSelectedFilters([...selectedFilters, tag]);
+    }
+  };
+
+  // Check if recipe matches current filters
+  const recipeMatchesFilters = (recipe) => {
+    if (selectedFilters.length === 0) return true;
+    const recipeTags = recipe.tags || (recipe.tag ? [recipe.tag] : []);
+    return selectedFilters.some(filter => recipeTags.includes(filter));
   };
 
   return (
@@ -279,14 +333,44 @@ const Food = () => {
             className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm resize-none"
             rows={3}
           />
-          <select
-            value={newRecipeTag}
-            onChange={(e) => setNewRecipeTag(e.target.value)}
-            className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm"
-          >
-            <option value="breakfast">Breakfast</option>
-            <option value="dinner">Dinner</option>
-          </select>
+          <div>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={currentTagInput}
+                onChange={(e) => setCurrentTagInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTagToNewRecipe();
+                  }
+                }}
+                placeholder="Add tags (e.g., breakfast, healthy, quick)..."
+                className="flex-1 px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm"
+              />
+              <button
+                onClick={addTagToNewRecipe}
+                className="px-4 py-2 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300 transition-all"
+              >
+                Add Tag
+              </button>
+            </div>
+            {newRecipeTags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {newRecipeTags.map((tag, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                    {tag}
+                    <button
+                      onClick={() => removeTagFromNewRecipe(tag)}
+                      className="hover:text-indigo-900"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={addRecipe}
             className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-sm rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all flex items-center gap-2"
@@ -297,61 +381,61 @@ const Food = () => {
         </div>
 
         {/* Filter buttons */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setRecipeFilter('all')}
-            className={`px-4 py-2 text-sm rounded-lg transition-all ${
-              recipeFilter === 'all'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setRecipeFilter('breakfast')}
-            className={`px-4 py-2 text-sm rounded-lg transition-all ${
-              recipeFilter === 'breakfast'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-            }`}
-          >
-            Breakfast
-          </button>
-          <button
-            onClick={() => setRecipeFilter('dinner')}
-            className={`px-4 py-2 text-sm rounded-lg transition-all ${
-              recipeFilter === 'dinner'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-            }`}
-          >
-            Dinner
-          </button>
-        </div>
+        {getAllTags().length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-semibold text-slate-700">Filter by tags:</span>
+              {selectedFilters.length > 0 && (
+                <button
+                  onClick={() => setSelectedFilters([])}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {getAllTags().map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => toggleFilter(tag)}
+                  className={`px-4 py-2 text-sm rounded-lg transition-all ${
+                    selectedFilters.includes(tag)
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           {foodData.recipes.map((recipe, index) => {
             // Skip if filtered out
-            if (recipeFilter !== 'all' && recipe.tag !== recipeFilter) return null;
+            if (!recipeMatchesFilters(recipe)) return null;
+
+            const recipeTags = recipe.tags || (recipe.tag ? [recipe.tag] : []);
 
             return (
               <div key={index} className="border border-slate-200 rounded-lg p-3 hover:bg-indigo-50/30 transition-colors">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-1">
+                  <div className="flex items-center gap-2 flex-1 flex-wrap">
                     <button
                       onClick={() => setExpandedRecipe(expandedRecipe === index ? null : index)}
                       className="text-left font-semibold text-indigo-600 hover:text-indigo-800 transition-colors text-sm"
                     >
                       {recipe.name}
                     </button>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      recipe.tag === 'breakfast'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {recipe.tag === 'breakfast' ? 'Breakfast' : 'Dinner'}
-                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {recipeTags.map((tag, tagIdx) => (
+                        <span key={tagIdx} className="px-2 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-700">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   <button
                     onClick={() => deleteRecipe(index)}
@@ -363,14 +447,41 @@ const Food = () => {
 
                 {expandedRecipe === index && (
                   <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                    <select
-                      value={recipe.tag || 'breakfast'}
-                      onChange={(e) => updateRecipe(index, 'tag', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-                    >
-                      <option value="breakfast">Breakfast</option>
-                      <option value="dinner">Dinner</option>
-                    </select>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Tags</label>
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          placeholder="Add a tag..."
+                          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const tag = e.target.value.trim();
+                              if (tag) {
+                                addTagToExistingRecipe(index, tag);
+                                e.target.value = '';
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                      {recipeTags.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {recipeTags.map((tag, tagIdx) => (
+                            <span key={tagIdx} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                              {tag}
+                              <button
+                                onClick={() => removeTagFromExistingRecipe(index, tag)}
+                                className="hover:text-indigo-900"
+                              >
+                                <X size={14} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <textarea
                       value={recipe.description}
                       onChange={(e) => updateRecipe(index, 'description', e.target.value)}
