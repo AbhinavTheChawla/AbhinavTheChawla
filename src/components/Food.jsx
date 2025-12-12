@@ -27,6 +27,9 @@ const Food = () => {
   const [selectedFilters, setSelectedFilters] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [editingRecipeTagInput, setEditingRecipeTagInput] = useState({});
+  const [showDeletedModal, setShowDeletedModal] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [editSuggestionIndex, setEditSuggestionIndex] = useState({});
 
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   const dayNames = {
@@ -152,14 +155,46 @@ const Food = () => {
   };
 
   const deleteRecipe = (index) => {
+    const recipeToDelete = foodData.recipes[index];
     const newRecipes = foodData.recipes.filter((_, i) => i !== index);
+    const deletedRecipes = foodData.deletedRecipes || [];
+
     updateFoodData({
       ...foodData,
-      recipes: newRecipes
+      recipes: newRecipes,
+      deletedRecipes: [...deletedRecipes, { ...recipeToDelete, deletedAt: new Date().toISOString() }]
     });
+
     if (expandedRecipe === index) {
       setExpandedRecipe(null);
     }
+  };
+
+  const restoreRecipe = (index) => {
+    const deletedRecipes = foodData.deletedRecipes || [];
+    const recipeToRestore = deletedRecipes[index];
+    const { deletedAt, ...recipe } = recipeToRestore; // Remove deletedAt timestamp
+
+    updateFoodData({
+      ...foodData,
+      recipes: [...foodData.recipes, recipe],
+      deletedRecipes: deletedRecipes.filter((_, i) => i !== index)
+    });
+  };
+
+  const permanentlyDeleteRecipe = (index) => {
+    const deletedRecipes = foodData.deletedRecipes || [];
+    updateFoodData({
+      ...foodData,
+      deletedRecipes: deletedRecipes.filter((_, i) => i !== index)
+    });
+  };
+
+  const clearAllDeletedRecipes = () => {
+    updateFoodData({
+      ...foodData,
+      deletedRecipes: []
+    });
   };
 
   const updateRecipe = (index, field, value) => {
@@ -334,12 +369,32 @@ const Food = () => {
                   onChange={(e) => {
                     setCurrentTagInput(e.target.value);
                     setShowSuggestions(true);
+                    setSelectedSuggestionIndex(-1);
                   }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                  onKeyDown={(e) => {
+                    const suggestions = getTagSuggestions(currentTagInput);
+                    if (e.key === 'ArrowDown') {
                       e.preventDefault();
-                      addTagToNewRecipe();
+                      setSelectedSuggestionIndex(prev =>
+                        prev < suggestions.length - 1 ? prev + 1 : prev
+                      );
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : -1);
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (selectedSuggestionIndex >= 0 && suggestions[selectedSuggestionIndex]) {
+                        setCurrentTagInput(suggestions[selectedSuggestionIndex]);
+                        setNewRecipeTags([...newRecipeTags, suggestions[selectedSuggestionIndex]]);
+                        setCurrentTagInput('');
+                        setSelectedSuggestionIndex(-1);
+                      } else {
+                        addTagToNewRecipe();
+                      }
                       setShowSuggestions(false);
+                    } else if (e.key === 'Escape') {
+                      setShowSuggestions(false);
+                      setSelectedSuggestionIndex(-1);
                     }
                   }}
                   onFocus={() => setShowSuggestions(true)}
@@ -356,8 +411,11 @@ const Food = () => {
                           setCurrentTagInput(tag);
                           addTagToNewRecipe();
                           setShowSuggestions(false);
+                          setSelectedSuggestionIndex(-1);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition-colors"
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                          idx === selectedSuggestionIndex ? 'bg-indigo-100' : 'hover:bg-indigo-50'
+                        }`}
                       >
                         {tag}
                       </button>
@@ -473,17 +531,44 @@ const Food = () => {
                             value={editingRecipeTagInput[index] || ''}
                             onChange={(e) => {
                               setEditingRecipeTagInput({ ...editingRecipeTagInput, [index]: e.target.value });
+                              setEditSuggestionIndex({ ...editSuggestionIndex, [index]: -1 });
                             }}
                             placeholder="Add a tag..."
                             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
+                            onKeyDown={(e) => {
+                              const editSuggestions = getAllTags().filter(tag =>
+                                tag.toLowerCase().includes((editingRecipeTagInput[index] || '').toLowerCase()) &&
+                                !recipeTags.includes(tag)
+                              );
+                              const currentIndex = editSuggestionIndex[index] || -1;
+
+                              if (e.key === 'ArrowDown') {
                                 e.preventDefault();
-                                const tag = editingRecipeTagInput[index]?.trim();
-                                if (tag) {
-                                  addTagToExistingRecipe(index, tag);
+                                setEditSuggestionIndex({
+                                  ...editSuggestionIndex,
+                                  [index]: currentIndex < editSuggestions.length - 1 ? currentIndex + 1 : currentIndex
+                                });
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setEditSuggestionIndex({
+                                  ...editSuggestionIndex,
+                                  [index]: currentIndex > 0 ? currentIndex - 1 : -1
+                                });
+                              } else if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (currentIndex >= 0 && editSuggestions[currentIndex]) {
+                                  addTagToExistingRecipe(index, editSuggestions[currentIndex]);
                                   setEditingRecipeTagInput({ ...editingRecipeTagInput, [index]: '' });
+                                  setEditSuggestionIndex({ ...editSuggestionIndex, [index]: -1 });
+                                } else {
+                                  const tag = editingRecipeTagInput[index]?.trim();
+                                  if (tag) {
+                                    addTagToExistingRecipe(index, tag);
+                                    setEditingRecipeTagInput({ ...editingRecipeTagInput, [index]: '' });
+                                  }
                                 }
+                              } else if (e.key === 'Escape') {
+                                setEditSuggestionIndex({ ...editSuggestionIndex, [index]: -1 });
                               }
                             }}
                           />
@@ -501,8 +586,11 @@ const Food = () => {
                                   onClick={() => {
                                     addTagToExistingRecipe(index, tag);
                                     setEditingRecipeTagInput({ ...editingRecipeTagInput, [index]: '' });
+                                    setEditSuggestionIndex({ ...editSuggestionIndex, [index]: -1 });
                                   }}
-                                  className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition-colors"
+                                  className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                                    tagIdx === (editSuggestionIndex[index] || -1) ? 'bg-indigo-100' : 'hover:bg-indigo-50'
+                                  }`}
                                 >
                                   {tag}
                                 </button>
@@ -540,7 +628,116 @@ const Food = () => {
             );
           })}
         </div>
+
+        {/* Recently Deleted Button */}
+        {foodData.deletedRecipes && foodData.deletedRecipes.length > 0 && (
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => setShowDeletedModal(true)}
+              className="px-4 py-2 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2"
+            >
+              <Trash2 size={16} />
+              Recently Deleted ({foodData.deletedRecipes.length})
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Recently Deleted Modal */}
+      {showDeletedModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDeletedModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-slate-800">Recently Deleted Recipes</h3>
+              <button
+                onClick={() => setShowDeletedModal(false)}
+                className="text-slate-500 hover:text-slate-700 transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {(!foodData.deletedRecipes || foodData.deletedRecipes.length === 0) ? (
+                <p className="text-slate-500 text-center py-8">No recently deleted recipes</p>
+              ) : (
+                <div className="space-y-3">
+                  {foodData.deletedRecipes.map((recipe, index) => {
+                    const recipeTags = recipe.tags || (recipe.tag ? [recipe.tag] : []);
+                    const deletedDate = new Date(recipe.deletedAt);
+                    const formattedDate = deletedDate.toLocaleDateString() + ' ' + deletedDate.toLocaleTimeString();
+
+                    return (
+                      <div key={index} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                        <div className="flex justify-between items-start gap-3 mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-slate-800">{recipe.name}</h4>
+                            <p className="text-xs text-slate-500 mt-1">Deleted on {formattedDate}</p>
+                            {recipeTags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {recipeTags.map((tag, tagIdx) => (
+                                  <span key={tagIdx} className="px-2 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-700">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {recipe.description && (
+                              <p className="text-sm text-slate-600 mt-2 line-clamp-2">{recipe.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={() => {
+                              restoreRecipe(index);
+                              if (foodData.deletedRecipes.length === 1) {
+                                setShowDeletedModal(false);
+                              }
+                            }}
+                            className="flex-1 px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-all"
+                          >
+                            Restore
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Permanently delete this recipe? This cannot be undone.')) {
+                                permanentlyDeleteRecipe(index);
+                                if (foodData.deletedRecipes.length === 1) {
+                                  setShowDeletedModal(false);
+                                }
+                              }
+                            }}
+                            className="flex-1 px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all"
+                          >
+                            Delete Forever
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {foodData.deletedRecipes && foodData.deletedRecipes.length > 0 && (
+              <div className="p-6 border-t border-slate-200">
+                <button
+                  onClick={() => {
+                    if (window.confirm('Permanently delete all recipes? This cannot be undone.')) {
+                      clearAllDeletedRecipes();
+                      setShowDeletedModal(false);
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all"
+                >
+                  Clear All Deleted Recipes
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
