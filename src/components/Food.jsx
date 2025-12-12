@@ -25,6 +25,8 @@ const Food = () => {
   const [newRecipeTags, setNewRecipeTags] = useState([]);
   const [currentTagInput, setCurrentTagInput] = useState('');
   const [selectedFilters, setSelectedFilters] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [editingRecipeTagInput, setEditingRecipeTagInput] = useState({});
 
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   const dayNames = {
@@ -169,14 +171,6 @@ const Food = () => {
     });
   };
 
-  // Inspo handler
-  const updateInspo = (value) => {
-    updateFoodData({
-      ...foodData,
-      inspo: value
-    });
-  };
-
   // Get all unique tags from all recipes
   const getAllTags = () => {
     const tagsSet = new Set();
@@ -196,11 +190,21 @@ const Food = () => {
     }
   };
 
-  // Check if recipe matches current filters
+  // Check if recipe matches current filters (AND logic - must have all selected tags)
   const recipeMatchesFilters = (recipe) => {
     if (selectedFilters.length === 0) return true;
     const recipeTags = recipe.tags || (recipe.tag ? [recipe.tag] : []);
-    return selectedFilters.some(filter => recipeTags.includes(filter));
+    return selectedFilters.every(filter => recipeTags.includes(filter));
+  };
+
+  // Get filtered tag suggestions based on input
+  const getTagSuggestions = (input) => {
+    if (!input.trim()) return [];
+    const allTags = getAllTags();
+    return allTags.filter(tag =>
+      tag.toLowerCase().includes(input.toLowerCase()) &&
+      !newRecipeTags.includes(tag)
+    );
   };
 
   return (
@@ -301,18 +305,6 @@ const Food = () => {
         </div>
       </div>
 
-      {/* Inspo Section */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4">Inspo</h2>
-        <textarea
-          value={foodData.inspo || ''}
-          onChange={(e) => updateInspo(e.target.value)}
-          placeholder="Ideas, things to try, notes..."
-          className="w-full px-4 py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm resize-none"
-          rows={6}
-        />
-      </div>
-
       {/* Recipe Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
         <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4">Recipes</h2>
@@ -334,20 +326,45 @@ const Food = () => {
             rows={3}
           />
           <div>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={currentTagInput}
-                onChange={(e) => setCurrentTagInput(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTagToNewRecipe();
-                  }
-                }}
-                placeholder="Add tags (e.g., breakfast, healthy, quick)..."
-                className="flex-1 px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm"
-              />
+            <div className="flex gap-2 mb-2 relative">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={currentTagInput}
+                  onChange={(e) => {
+                    setCurrentTagInput(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addTagToNewRecipe();
+                      setShowSuggestions(false);
+                    }
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  placeholder="Add tags (e.g., breakfast, healthy, quick)..."
+                  className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm"
+                />
+                {showSuggestions && currentTagInput && getTagSuggestions(currentTagInput).length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                    {getTagSuggestions(currentTagInput).map((tag, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setCurrentTagInput(tag);
+                          addTagToNewRecipe();
+                          setShowSuggestions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition-colors"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={addTagToNewRecipe}
                 className="px-4 py-2 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300 transition-all"
@@ -449,22 +466,50 @@ const Food = () => {
                   <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Tags</label>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="text"
-                          placeholder="Add a tag..."
-                          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const tag = e.target.value.trim();
-                              if (tag) {
-                                addTagToExistingRecipe(index, tag);
-                                e.target.value = '';
+                      <div className="flex gap-2 mb-2 relative">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={editingRecipeTagInput[index] || ''}
+                            onChange={(e) => {
+                              setEditingRecipeTagInput({ ...editingRecipeTagInput, [index]: e.target.value });
+                            }}
+                            placeholder="Add a tag..."
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const tag = editingRecipeTagInput[index]?.trim();
+                                if (tag) {
+                                  addTagToExistingRecipe(index, tag);
+                                  setEditingRecipeTagInput({ ...editingRecipeTagInput, [index]: '' });
+                                }
                               }
-                            }
-                          }}
-                        />
+                            }}
+                          />
+                          {editingRecipeTagInput[index] && getAllTags().filter(tag =>
+                            tag.toLowerCase().includes(editingRecipeTagInput[index].toLowerCase()) &&
+                            !recipeTags.includes(tag)
+                          ).length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                              {getAllTags().filter(tag =>
+                                tag.toLowerCase().includes(editingRecipeTagInput[index].toLowerCase()) &&
+                                !recipeTags.includes(tag)
+                              ).map((tag, tagIdx) => (
+                                <button
+                                  key={tagIdx}
+                                  onClick={() => {
+                                    addTagToExistingRecipe(index, tag);
+                                    setEditingRecipeTagInput({ ...editingRecipeTagInput, [index]: '' });
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition-colors"
+                                >
+                                  {tag}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       {recipeTags.length > 0 && (
                         <div className="flex flex-wrap gap-2">
