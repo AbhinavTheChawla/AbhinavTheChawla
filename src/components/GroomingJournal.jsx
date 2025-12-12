@@ -21,7 +21,7 @@ const GroomingJournal = () => {
   const updateCell = (category, rowIndex, colIndex, value) => {
     const newData = {
       ...data,
-      [category]: data[category].map((row, i) =>
+      [category]: (data[category] || []).map((row, i) =>
         i === rowIndex
           ? row.map((cell, j) => (j === colIndex ? value : cell))
           : row
@@ -33,7 +33,7 @@ const GroomingJournal = () => {
   const addRow = (category) => {
     const newData = {
       ...data,
-      [category]: [...data[category], ['', '']]
+      [category]: [...(data[category] || []), ['', '']]
     };
     updateGrooming(newData);
   };
@@ -41,7 +41,7 @@ const GroomingJournal = () => {
   const deleteRow = (category, index) => {
     const newData = {
       ...data,
-      [category]: data[category].filter((_, i) => i !== index)
+      [category]: (data[category] || []).filter((_, i) => i !== index)
     };
     updateGrooming(newData);
   };
