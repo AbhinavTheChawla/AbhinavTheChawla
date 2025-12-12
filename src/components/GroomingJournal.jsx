@@ -46,6 +46,14 @@ const GroomingJournal = () => {
     updateGrooming(newData);
   };
 
+  const updateNotes = (value) => {
+    const newData = {
+      ...data,
+      notes: value
+    };
+    updateGrooming(newData);
+  };
+
   const renderTable = (category, title, emoji, hasNumbers = false) => {
     const rows = data[category] || [];
 
@@ -150,6 +158,22 @@ const GroomingJournal = () => {
 
       <div className="mt-4 sm:mt-6 md:mt-8">
         {renderTable('treatments', 'Treatments', '💆')}
+      </div>
+
+      <div className="mt-4 sm:mt-6 md:mt-8">
+        <div className="text-xs sm:text-sm font-semibold uppercase text-slate-600 mb-2 sm:mb-3 tracking-wide flex items-center gap-2">
+          <span>📝</span>
+          <span>Notes</span>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+          <textarea
+            value={data.notes || ''}
+            onChange={(e) => updateNotes(e.target.value)}
+            className="w-full border-transparent hover:border-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm transition-all resize-y min-h-[120px] sm:min-h-[150px]"
+            placeholder="Add your grooming notes, observations, or reminders here..."
+          />
+        </div>
+        <p className="text-slate-400 mt-2 text-xs">Use this space to track skin observations, product reviews, or future plans</p>
       </div>
     </div>
   );

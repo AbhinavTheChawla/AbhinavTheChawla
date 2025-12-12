@@ -149,7 +149,8 @@ const useStore = create((set, get) => ({
     treatments: [
       ['Treatment Name', 'Details'],
       ['Treatment Name', 'Details']
-    ]
+    ],
+    notes: ''
   }),
 
   // AI Settings
@@ -452,7 +453,8 @@ const useStore = create((set, get) => ({
         treatments: [
           ['Treatment Name', 'Details'],
           ['Treatment Name', 'Details']
-        ]
+        ],
+        notes: ''
       }),
       blueprintData: loadFromStorage('blueprintData', {
         dailyMantra: '',
