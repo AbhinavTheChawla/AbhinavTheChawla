@@ -145,6 +145,10 @@ const useStore = create((set, get) => ({
       ['Morning: Vitamin D3', '5000 IU'],
       ['Morning: Omega-3', 'Nordic Naturals - 2 caps'],
       ['Evening: Magnesium', '400mg before bed']
+    ],
+    treatments: [
+      ['Treatment Name', 'Details'],
+      ['Treatment Name', 'Details']
     ]
   }),
 
@@ -444,6 +448,10 @@ const useStore = create((set, get) => ({
           ['Morning: Vitamin D3', '5000 IU'],
           ['Morning: Omega-3', 'Nordic Naturals - 2 caps'],
           ['Evening: Magnesium', '400mg before bed']
+        ],
+        treatments: [
+          ['Treatment Name', 'Details'],
+          ['Treatment Name', 'Details']
         ]
       }),
       blueprintData: loadFromStorage('blueprintData', {

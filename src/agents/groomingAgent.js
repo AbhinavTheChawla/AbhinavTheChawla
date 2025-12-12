@@ -38,6 +38,9 @@ ${grooming.shaving.map(item => `- ${item[0]}: ${item[1]}`).join('\n')}
 HAIR ROUTINE:
 ${grooming.hair.map(item => `- ${item[0]}: ${item[1]}`).join('\n')}
 
+TREATMENTS:
+${grooming.treatments?.length > 0 ? grooming.treatments.map(item => `- ${item[0]}: ${item[1]}`).join('\n') : 'None listed'}
+
 GROOMING WISHLIST:
 ${grooming.wishlist.length > 0 ? grooming.wishlist.map(item => `- ${item[0]} (${item[1]}) - Priority: ${item[2]}`).join('\n') : 'Empty'}
 
