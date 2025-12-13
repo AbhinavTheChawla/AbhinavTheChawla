@@ -275,10 +275,12 @@ const Media = () => {
   // Frameworks state
   const [newFrameworkTitle, setNewFrameworkTitle] = useState('');
   const [newFrameworkDescription, setNewFrameworkDescription] = useState('');
+  const [newFrameworkExamples, setNewFrameworkExamples] = useState('');
   const [editingFramework, setEditingFramework] = useState(null);
   const [frameworkModalOpen, setFrameworkModalOpen] = useState(false);
   const [editFrameworkTitle, setEditFrameworkTitle] = useState('');
   const [editFrameworkDescription, setEditFrameworkDescription] = useState('');
+  const [editFrameworkExamples, setEditFrameworkExamples] = useState('');
 
   // Framework tagging state
   const [frameworkTagModalOpen, setFrameworkTagModalOpen] = useState(false);
@@ -950,6 +952,7 @@ ${idx + 1}. **${item.title}**
       id: generateId(),
       title: newFrameworkTitle.trim(),
       description: newFrameworkDescription.trim(),
+      examples: newFrameworkExamples.trim(),
       dateAdded: Date.now()
     };
 
@@ -960,6 +963,7 @@ ${idx + 1}. **${item.title}**
 
     setNewFrameworkTitle('');
     setNewFrameworkDescription('');
+    setNewFrameworkExamples('');
   };
 
   const deleteFramework = (id) => {
@@ -973,6 +977,7 @@ ${idx + 1}. **${item.title}**
     setEditingFramework(framework);
     setEditFrameworkTitle(framework.title);
     setEditFrameworkDescription(framework.description);
+    setEditFrameworkExamples(framework.examples || '');
     setFrameworkModalOpen(true);
   };
 
@@ -982,7 +987,8 @@ ${idx + 1}. **${item.title}**
     const updatedFramework = {
       ...editingFramework,
       title: editFrameworkTitle.trim() || editingFramework.title,
-      description: editFrameworkDescription.trim()
+      description: editFrameworkDescription.trim(),
+      examples: editFrameworkExamples.trim()
     };
 
     const updatedList = safeMediaData.frameworks.map(f =>
@@ -1002,6 +1008,7 @@ ${idx + 1}. **${item.title}**
     setEditingFramework(null);
     setEditFrameworkTitle('');
     setEditFrameworkDescription('');
+    setEditFrameworkExamples('');
   };
 
   // Framework tagging functions
@@ -1096,6 +1103,13 @@ ${idx + 1}. **${item.title}**
 
   const getFrameworkById = (id) => {
     return safeMediaData.frameworks.find(f => f.id === id);
+  };
+
+  // Get backlinks for a framework (media items that reference this framework)
+  const getFrameworkBacklinks = (frameworkId) => {
+    return safeMediaData.consumed.filter(item =>
+      item.frameworkTags && item.frameworkTags.some(ft => ft.frameworkId === frameworkId)
+    );
   };
 
   // View item modal functions
@@ -1624,6 +1638,13 @@ ${idx + 1}. **${item.title}**
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[100px] resize-y"
                 rows="3"
               />
+              <textarea
+                value={newFrameworkExamples}
+                onChange={(e) => setNewFrameworkExamples(e.target.value)}
+                placeholder="Examples from your life..."
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[100px] resize-y"
+                rows="3"
+              />
               <button
                 onClick={addFramework}
                 className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
@@ -1641,41 +1662,80 @@ ${idx + 1}. **${item.title}**
               {safeMediaData.frameworks.length === 0 ? (
                 <p className="text-slate-500 text-center py-8">No frameworks saved yet</p>
               ) : (
-                safeMediaData.frameworks.map(framework => (
-                  <div key={framework.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <h4 className="text-green-600 font-medium mb-2">{framework.title}</h4>
-                        {framework.description && (
-                          <p className="text-sm text-slate-600 mb-2">{framework.description}</p>
-                        )}
-                        <span className="text-xs text-slate-500">
-                          Added {new Date(framework.dateAdded).toLocaleDateString()}
-                        </span>
+                safeMediaData.frameworks.map(framework => {
+                  const backlinks = getFrameworkBacklinks(framework.id);
+                  return (
+                    <div key={framework.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex-1">
+                          <h4 className="text-green-600 font-medium mb-2">{framework.title}</h4>
+                          {framework.description && (
+                            <div className="mb-3">
+                              <p className="text-xs font-semibold text-slate-700 mb-1">Description:</p>
+                              <p className="text-sm text-slate-600">{framework.description}</p>
+                            </div>
+                          )}
+                          <span className="text-xs text-slate-500">
+                            Added {new Date(framework.dateAdded).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openFrameworkEditModal(framework)}
+                            className="text-green-500 hover:text-green-700 transition-all"
+                            title="Edit"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Delete this framework?')) {
+                                deleteFramework(framework.id);
+                              }
+                            }}
+                            className="text-red-500 hover:text-red-700 transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openFrameworkEditModal(framework)}
-                          className="text-green-500 hover:text-green-700 transition-all"
-                          title="Edit"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm('Delete this framework?')) {
-                              deleteFramework(framework.id);
-                            }
-                          }}
-                          className="text-red-500 hover:text-red-700 transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+
+                      {/* Examples Section */}
+                      <div className="border-t border-slate-200 pt-3 mt-3">
+                        <p className="text-xs font-semibold text-slate-700 mb-2">Examples:</p>
+                        {framework.examples ? (
+                          <p className="text-sm text-slate-600 whitespace-pre-wrap mb-3">{framework.examples}</p>
+                        ) : (
+                          <p className="text-sm text-slate-400 italic mb-3">No examples added yet</p>
+                        )}
+
+                        {/* Backlinks */}
+                        {backlinks.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs font-semibold text-green-700 mb-2">
+                              Referenced in {backlinks.length} media {backlinks.length === 1 ? 'item' : 'items'}:
+                            </p>
+                            <div className="space-y-1">
+                              {backlinks.map(item => (
+                                <div
+                                  key={item.id}
+                                  onClick={() => openViewItemModal(item)}
+                                  className="text-xs text-green-600 hover:text-green-800 cursor-pointer flex items-center gap-2 bg-green-50 px-2 py-1 rounded border border-green-200"
+                                >
+                                  <ExternalLink size={12} />
+                                  <span>
+                                    {item.contentType === 'book' ? item.bookTitle : item.title}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -2153,7 +2213,7 @@ ${idx + 1}. **${item.title}**
       {/* Framework Edit Modal */}
       {frameworkModalOpen && editingFramework && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 shadow-xl max-w-lg w-full">
+          <div className="bg-white rounded-xl p-6 shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-slate-800">Edit Framework</h2>
               <button onClick={closeFrameworkEditModal} className="text-slate-500 hover:text-slate-700">
@@ -2175,8 +2235,18 @@ ${idx + 1}. **${item.title}**
                 <textarea
                   value={editFrameworkDescription}
                   onChange={(e) => setEditFrameworkDescription(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[100px] resize-y"
-                  rows="3"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[150px] resize-y"
+                  rows="6"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Examples</label>
+                <textarea
+                  value={editFrameworkExamples}
+                  onChange={(e) => setEditFrameworkExamples(e.target.value)}
+                  placeholder="Examples from your life..."
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[150px] resize-y"
+                  rows="6"
                 />
               </div>
               <div className="flex gap-3 pt-2">
