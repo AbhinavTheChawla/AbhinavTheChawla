@@ -241,7 +241,7 @@ const useStore = create((set, get) => ({
     consumed: [], // Array of consumed media items
     toConsume: [], // Array of media to consume (consolidated read/watch list)
     weeklyRecaps: [], // Array of weekly recaps
-    frameworks: [] // Array of frameworks: { id, title, description, dateAdded }
+    frameworks: [] // Array of frameworks: { id, title, description, examples, dateAdded }
   }),
 
   // Actions for Wardrobe
@@ -520,7 +520,7 @@ const useStore = create((set, get) => ({
         consumed: [],
         toConsume: [],
         weeklyRecaps: [],
-        frameworks: []
+        frameworks: [] // { id, title, description, examples, dateAdded }
       })
     });
   }
