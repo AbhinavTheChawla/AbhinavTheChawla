@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Download } from 'lucide-react';
 import useStore from '../store';
 
 const GroomingJournal = () => {
@@ -52,6 +52,71 @@ const GroomingJournal = () => {
       notes: value
     };
     updateGrooming(newData);
+  };
+
+  const exportToTxt = () => {
+    const timestamp = new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    let content = `GROOMING JOURNAL EXPORT\n`;
+    content += `Exported on: ${timestamp}\n`;
+    content += `${'='.repeat(60)}\n\n`;
+
+    // Helper function to format a section
+    const formatSection = (title, emoji, items, numbered = false) => {
+      let section = `${emoji} ${title.toUpperCase()}\n`;
+      section += `${'-'.repeat(60)}\n`;
+
+      if (!items || items.length === 0) {
+        section += `(No items)\n\n`;
+        return section;
+      }
+
+      items.forEach((item, index) => {
+        const prefix = numbered ? `${index + 1}. ` : '• ';
+        const product = item[0] || '(unnamed)';
+        const details = item[1] || '(no details)';
+        section += `${prefix}${product}\n`;
+        section += `   ${details}\n`;
+      });
+      section += `\n`;
+      return section;
+    };
+
+    // Export each section
+    content += formatSection('AM Routine', '🌅', data.am, true);
+    content += formatSection('PM Routine', '🌙', data.pm, true);
+    content += formatSection('Shaving', '✂️', data.shaving);
+    content += formatSection('Hair', '💇', data.hair);
+    content += formatSection('Perfumes', '🌸', data.perfumes);
+    content += formatSection('Supplements', '💊', data.supplements);
+    content += formatSection('Treatments', '💆', data.treatments);
+
+    // Add notes section
+    if (data.notes) {
+      content += `📝 NOTES\n`;
+      content += `${'-'.repeat(60)}\n`;
+      content += `${data.notes}\n\n`;
+    }
+
+    content += `${'='.repeat(60)}\n`;
+    content += `End of Grooming Journal Export\n`;
+
+    // Create and download the file
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `grooming-journal-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const renderTable = (category, title, emoji, hasNumbers = false) => {
@@ -124,9 +189,19 @@ const GroomingJournal = () => {
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200 p-4 sm:p-6 md:p-8">
-      <div className="mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Grooming Routine Tracker</h2>
-        <p className="text-slate-500 mt-1 text-xs sm:text-sm">Click any cell to edit • Changes save automatically</p>
+      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Grooming Routine Tracker</h2>
+          <p className="text-slate-500 mt-1 text-xs sm:text-sm">Click any cell to edit • Changes save automatically</p>
+        </div>
+        <button
+          onClick={exportToTxt}
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition-colors shadow-sm hover:shadow-md self-start sm:self-auto"
+          title="Export grooming journal as text file"
+        >
+          <Download size={16} className="sm:w-4 sm:h-4" />
+          Export as TXT
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
