@@ -281,6 +281,17 @@ const Media = () => {
   const [editFrameworkTitle, setEditFrameworkTitle] = useState('');
   const [editFrameworkDescription, setEditFrameworkDescription] = useState('');
   const [editFrameworkExamples, setEditFrameworkExamples] = useState('');
+  const [editFrameworkTags, setEditFrameworkTags] = useState([]);
+  const [editFrameworkTagInput, setEditFrameworkTagInput] = useState('');
+  const [editFrameworkShowSuggestions, setEditFrameworkShowSuggestions] = useState(false);
+  const [editFrameworkSuggestionIndex, setEditFrameworkSuggestionIndex] = useState(-1);
+
+  // Framework tags state (for adding new frameworks)
+  const [newFrameworkTags, setNewFrameworkTags] = useState([]);
+  const [currentFrameworkTagInput, setCurrentFrameworkTagInput] = useState('');
+  const [showFrameworkTagSuggestions, setShowFrameworkTagSuggestions] = useState(false);
+  const [selectedFrameworkTagSuggestionIndex, setSelectedFrameworkTagSuggestionIndex] = useState(-1);
+  const [selectedFrameworkFilters, setSelectedFrameworkFilters] = useState([]);
 
   // Framework tagging state
   const [frameworkTagModalOpen, setFrameworkTagModalOpen] = useState(false);
@@ -953,6 +964,7 @@ ${idx + 1}. **${item.title}**
       title: newFrameworkTitle.trim(),
       description: newFrameworkDescription.trim(),
       examples: newFrameworkExamples.trim(),
+      tags: newFrameworkTags,
       dateAdded: Date.now()
     };
 
@@ -964,6 +976,8 @@ ${idx + 1}. **${item.title}**
     setNewFrameworkTitle('');
     setNewFrameworkDescription('');
     setNewFrameworkExamples('');
+    setNewFrameworkTags([]);
+    setCurrentFrameworkTagInput('');
   };
 
   const deleteFramework = (id) => {
@@ -978,6 +992,8 @@ ${idx + 1}. **${item.title}**
     setEditFrameworkTitle(framework.title);
     setEditFrameworkDescription(framework.description);
     setEditFrameworkExamples(framework.examples || '');
+    setEditFrameworkTags(framework.tags || []);
+    setEditFrameworkTagInput('');
     setFrameworkModalOpen(true);
   };
 
@@ -988,7 +1004,8 @@ ${idx + 1}. **${item.title}**
       ...editingFramework,
       title: editFrameworkTitle.trim() || editingFramework.title,
       description: editFrameworkDescription.trim(),
-      examples: editFrameworkExamples.trim()
+      examples: editFrameworkExamples.trim(),
+      tags: editFrameworkTags
     };
 
     const updatedList = safeMediaData.frameworks.map(f =>
@@ -1009,6 +1026,78 @@ ${idx + 1}. **${item.title}**
     setEditFrameworkTitle('');
     setEditFrameworkDescription('');
     setEditFrameworkExamples('');
+    setEditFrameworkTags([]);
+    setEditFrameworkTagInput('');
+  };
+
+  // Framework tag management functions
+  const addTagToNewFramework = () => {
+    const tag = currentFrameworkTagInput.trim();
+    if (tag && !newFrameworkTags.includes(tag)) {
+      setNewFrameworkTags([...newFrameworkTags, tag]);
+      setCurrentFrameworkTagInput('');
+    }
+  };
+
+  const removeTagFromNewFramework = (tagToRemove) => {
+    setNewFrameworkTags(newFrameworkTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const addTagToEditFramework = () => {
+    const tag = editFrameworkTagInput.trim();
+    if (tag && !editFrameworkTags.includes(tag)) {
+      setEditFrameworkTags([...editFrameworkTags, tag]);
+      setEditFrameworkTagInput('');
+    }
+  };
+
+  const removeTagFromEditFramework = (tagToRemove) => {
+    setEditFrameworkTags(editFrameworkTags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Get all unique tags from all frameworks
+  const getAllFrameworkTags = () => {
+    const tagsSet = new Set();
+    safeMediaData.frameworks.forEach(framework => {
+      const frameworkTags = framework.tags || [];
+      frameworkTags.forEach(tag => tagsSet.add(tag));
+    });
+    return Array.from(tagsSet).sort();
+  };
+
+  // Toggle filter selection for frameworks
+  const toggleFrameworkFilter = (tag) => {
+    if (selectedFrameworkFilters.includes(tag)) {
+      setSelectedFrameworkFilters(selectedFrameworkFilters.filter(f => f !== tag));
+    } else {
+      setSelectedFrameworkFilters([...selectedFrameworkFilters, tag]);
+    }
+  };
+
+  // Check if framework matches current filters (AND logic - must have all selected tags)
+  const frameworkMatchesFilters = (framework) => {
+    if (selectedFrameworkFilters.length === 0) return true;
+    const frameworkTags = framework.tags || [];
+    return selectedFrameworkFilters.every(filter => frameworkTags.includes(filter));
+  };
+
+  // Get filtered tag suggestions based on input
+  const getFrameworkTagSuggestions = (input) => {
+    if (!input.trim()) return [];
+    const allTags = getAllFrameworkTags();
+    return allTags.filter(tag =>
+      tag.toLowerCase().includes(input.toLowerCase()) &&
+      !newFrameworkTags.includes(tag)
+    );
+  };
+
+  const getEditFrameworkTagSuggestions = (input) => {
+    if (!input.trim()) return [];
+    const allTags = getAllFrameworkTags();
+    return allTags.filter(tag =>
+      tag.toLowerCase().includes(input.toLowerCase()) &&
+      !editFrameworkTags.includes(tag)
+    );
   };
 
   // Framework tagging functions
@@ -1645,6 +1734,92 @@ ${idx + 1}. **${item.title}**
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[100px] resize-y"
                 rows="3"
               />
+              <div>
+                <div className="flex gap-2 mb-2 relative">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={currentFrameworkTagInput}
+                      onChange={(e) => {
+                        setCurrentFrameworkTagInput(e.target.value);
+                        setShowFrameworkTagSuggestions(true);
+                        setSelectedFrameworkTagSuggestionIndex(-1);
+                      }}
+                      onKeyDown={(e) => {
+                        const suggestions = getFrameworkTagSuggestions(currentFrameworkTagInput);
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          setSelectedFrameworkTagSuggestionIndex(prev =>
+                            prev < suggestions.length - 1 ? prev + 1 : prev
+                          );
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setSelectedFrameworkTagSuggestionIndex(prev => prev > 0 ? prev - 1 : -1);
+                        } else if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (selectedFrameworkTagSuggestionIndex >= 0 && suggestions[selectedFrameworkTagSuggestionIndex]) {
+                            setCurrentFrameworkTagInput(suggestions[selectedFrameworkTagSuggestionIndex]);
+                            setNewFrameworkTags([...newFrameworkTags, suggestions[selectedFrameworkTagSuggestionIndex]]);
+                            setCurrentFrameworkTagInput('');
+                            setSelectedFrameworkTagSuggestionIndex(-1);
+                          } else {
+                            addTagToNewFramework();
+                          }
+                          setShowFrameworkTagSuggestions(false);
+                        } else if (e.key === 'Escape') {
+                          setShowFrameworkTagSuggestions(false);
+                          setSelectedFrameworkTagSuggestionIndex(-1);
+                        }
+                      }}
+                      onFocus={() => setShowFrameworkTagSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowFrameworkTagSuggestions(false), 200)}
+                      placeholder="Add tags (e.g., mindfulness, productivity, health)..."
+                      className="w-full px-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                    />
+                    {showFrameworkTagSuggestions && currentFrameworkTagInput && getFrameworkTagSuggestions(currentFrameworkTagInput).length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                        {getFrameworkTagSuggestions(currentFrameworkTagInput).map((tag, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setCurrentFrameworkTagInput(tag);
+                              addTagToNewFramework();
+                              setShowFrameworkTagSuggestions(false);
+                              setSelectedFrameworkTagSuggestionIndex(-1);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                              idx === selectedFrameworkTagSuggestionIndex ? 'bg-green-100' : 'hover:bg-green-50'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={addTagToNewFramework}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300 transition-all"
+                  >
+                    Add Tag
+                  </button>
+                </div>
+                {newFrameworkTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {newFrameworkTags.map((tag, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                        {tag}
+                        <button
+                          onClick={() => removeTagFromNewFramework(tag)}
+                          className="hover:text-green-900"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={addFramework}
                 className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
@@ -1658,17 +1833,64 @@ ${idx + 1}. **${item.title}**
           {/* Frameworks List */}
           <div className="bg-white rounded-xl p-6 shadow-md">
             <h3 className="text-lg font-bold mb-4 text-slate-800">Saved Frameworks ({safeMediaData.frameworks.length})</h3>
+
+            {/* Filter buttons */}
+            {getAllFrameworkTags().length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-semibold text-slate-700">Filter by tags:</span>
+                  {selectedFrameworkFilters.length > 0 && (
+                    <button
+                      onClick={() => setSelectedFrameworkFilters([])}
+                      className="text-xs text-green-600 hover:text-green-800 underline"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {getAllFrameworkTags().map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleFrameworkFilter(tag)}
+                      className={`px-4 py-2 text-sm rounded-lg transition-all ${
+                        selectedFrameworkFilters.includes(tag)
+                          ? 'bg-green-600 text-white'
+                          : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               {safeMediaData.frameworks.length === 0 ? (
                 <p className="text-slate-500 text-center py-8">No frameworks saved yet</p>
               ) : (
                 safeMediaData.frameworks.map(framework => {
+                  // Skip if filtered out
+                  if (!frameworkMatchesFilters(framework)) return null;
+
                   const backlinks = getFrameworkBacklinks(framework.id);
                   return (
                     <div key={framework.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all">
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex-1">
-                          <h4 className="text-green-600 font-medium mb-2">{framework.title}</h4>
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <h4 className="text-green-600 font-medium">{framework.title}</h4>
+                            {framework.tags && framework.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {framework.tags.map((tag, tagIdx) => (
+                                  <span key={tagIdx} className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                           {framework.description && (
                             <div className="mb-3">
                               <p className="text-xs font-semibold text-slate-700 mb-1">Description:</p>
@@ -2248,6 +2470,93 @@ ${idx + 1}. **${item.title}**
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 min-h-[150px] resize-y"
                   rows="6"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tags</label>
+                <div className="flex gap-2 mb-2 relative">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={editFrameworkTagInput}
+                      onChange={(e) => {
+                        setEditFrameworkTagInput(e.target.value);
+                        setEditFrameworkShowSuggestions(true);
+                        setEditFrameworkSuggestionIndex(-1);
+                      }}
+                      onKeyDown={(e) => {
+                        const suggestions = getEditFrameworkTagSuggestions(editFrameworkTagInput);
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          setEditFrameworkSuggestionIndex(prev =>
+                            prev < suggestions.length - 1 ? prev + 1 : prev
+                          );
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setEditFrameworkSuggestionIndex(prev => prev > 0 ? prev - 1 : -1);
+                        } else if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (editFrameworkSuggestionIndex >= 0 && suggestions[editFrameworkSuggestionIndex]) {
+                            setEditFrameworkTagInput(suggestions[editFrameworkSuggestionIndex]);
+                            setEditFrameworkTags([...editFrameworkTags, suggestions[editFrameworkSuggestionIndex]]);
+                            setEditFrameworkTagInput('');
+                            setEditFrameworkSuggestionIndex(-1);
+                          } else {
+                            addTagToEditFramework();
+                          }
+                          setEditFrameworkShowSuggestions(false);
+                        } else if (e.key === 'Escape') {
+                          setEditFrameworkShowSuggestions(false);
+                          setEditFrameworkSuggestionIndex(-1);
+                        }
+                      }}
+                      onFocus={() => setEditFrameworkShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setEditFrameworkShowSuggestions(false), 200)}
+                      placeholder="Add tags..."
+                      className="w-full px-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                    />
+                    {editFrameworkShowSuggestions && editFrameworkTagInput && getEditFrameworkTagSuggestions(editFrameworkTagInput).length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                        {getEditFrameworkTagSuggestions(editFrameworkTagInput).map((tag, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setEditFrameworkTagInput(tag);
+                              addTagToEditFramework();
+                              setEditFrameworkShowSuggestions(false);
+                              setEditFrameworkSuggestionIndex(-1);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                              idx === editFrameworkSuggestionIndex ? 'bg-green-100' : 'hover:bg-green-50'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={addTagToEditFramework}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300 transition-all"
+                  >
+                    Add Tag
+                  </button>
+                </div>
+                {editFrameworkTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {editFrameworkTags.map((tag, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                        {tag}
+                        <button
+                          onClick={() => removeTagFromEditFramework(tag)}
+                          className="hover:text-green-900"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <button
