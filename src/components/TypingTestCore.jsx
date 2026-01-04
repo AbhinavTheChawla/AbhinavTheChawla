@@ -177,7 +177,7 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
 
     return (
       <span key={index} className={className}>
-        {char === ' ' ? '\u00A0' : char}
+        {char}
       </span>
     );
   };
@@ -192,33 +192,33 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
   return (
     <div className="space-y-6" onClick={() => inputRef.current?.focus()}>
       {/* Stats Bar */}
-      <div className="flex justify-between items-center bg-slate-100 px-6 py-4 rounded-xl">
-        <div className="flex gap-8">
+      <div className="flex flex-wrap justify-between items-center bg-slate-100 px-4 sm:px-6 py-3 sm:py-4 rounded-xl gap-4">
+        <div className="flex gap-4 sm:gap-8">
           <div>
             <div className="text-xs text-slate-500 font-medium">WPM</div>
-            <div className="text-2xl font-bold text-slate-700">{liveWpm}</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-700">{liveWpm}</div>
           </div>
           <div>
             <div className="text-xs text-slate-500 font-medium">Raw</div>
-            <div className="text-2xl font-bold text-slate-700">{liveRawWpm}</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-700">{liveRawWpm}</div>
           </div>
           <div>
             <div className="text-xs text-slate-500 font-medium">Accuracy</div>
-            <div className="text-2xl font-bold text-slate-700">{liveAccuracy}%</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-700">{liveAccuracy}%</div>
           </div>
         </div>
 
         {mode.type === 'timed' && (
           <div>
             <div className="text-xs text-slate-500 font-medium">Time Left</div>
-            <div className="text-2xl font-bold text-slate-700">{timeLeft}s</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-700">{timeLeft}s</div>
           </div>
         )}
       </div>
 
       {/* Text Display */}
-      <div className="bg-white px-8 py-12 rounded-xl shadow-sm border border-slate-200 cursor-text">
-        <div className="font-mono text-2xl leading-relaxed tracking-wide select-none">
+      <div className="bg-white px-4 sm:px-8 py-8 sm:py-12 rounded-xl shadow-sm border border-slate-200 cursor-text">
+        <div className="font-mono text-lg sm:text-2xl leading-relaxed tracking-wide select-none break-words whitespace-pre-wrap">
           {targetText.split('').map((char, index) => renderCharacter(char, index))}
           {/* Show extra characters */}
           {userInput.length > targetText.length &&
