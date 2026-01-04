@@ -215,10 +215,22 @@ export function getHistoricalTopMistakes(limit = 5) {
     .slice(0, limit);
 }
 
+export function clearMistakeHistory() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    return true;
+  } catch (error) {
+    console.error('Failed to clear mistake history:', error);
+    return false;
+  }
+}
+
 // Calculate WPM
 export function calculateWPM(charCount, timeInSeconds) {
+  if (timeInSeconds === 0 || timeInSeconds < 0.1) return 0;
   const minutes = timeInSeconds / 60;
-  return Math.round((charCount / 5) / minutes);
+  const wpm = (charCount / 5) / minutes;
+  return Math.round(isFinite(wpm) ? wpm : 0);
 }
 
 // Calculate accuracy

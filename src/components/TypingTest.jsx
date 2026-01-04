@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Hash, RotateCcw } from 'lucide-react';
+import { Clock, Hash, RotateCcw, Trash2 } from 'lucide-react';
 import TypingTestCore from './TypingTestCore';
 import ResultsScreen from './ResultsScreen';
 import {
@@ -8,6 +8,7 @@ import {
   MistakeTracker,
   updateMistakeHistory,
   getHistoricalTopMistakes,
+  clearMistakeHistory,
 } from '../utils/mistakeUtils';
 
 const TypingTest = () => {
@@ -90,6 +91,13 @@ const TypingTest = () => {
     startNewTest(sameText);
   };
 
+  const handleClearHistory = () => {
+    if (window.confirm('Are you sure you want to clear all mistake history? This cannot be undone.')) {
+      clearMistakeHistory();
+      setHistoricalMistakes([]);
+    }
+  };
+
   // Render different states
   if (testState === 'testing' || testState === 'drill') {
     return (
@@ -160,9 +168,19 @@ const TypingTest = () => {
       {/* Historical Mistakes */}
       {historicalMistakes.length > 0 && (
         <div className="bg-violet-50 border border-violet-200 rounded-xl p-6 mb-8">
-          <h3 className="text-lg font-semibold text-slate-700 mb-3 flex items-center gap-2">
-            📊 Your Chronic Weaknesses
-          </h3>
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="text-lg font-semibold text-slate-700 flex items-center gap-2">
+              📊 Your Chronic Weaknesses
+            </h3>
+            <button
+              onClick={handleClearHistory}
+              className="text-red-600 hover:text-red-700 hover:bg-red-100 px-3 py-1 rounded-lg transition-all duration-200 flex items-center gap-1 text-sm font-medium"
+              title="Clear mistake history"
+            >
+              <Trash2 size={14} />
+              Clear History
+            </button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {historicalMistakes.map((mistake, index) => (
               <span
