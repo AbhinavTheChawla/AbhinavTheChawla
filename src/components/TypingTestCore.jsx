@@ -13,6 +13,7 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
   const inputRef = useRef(null);
   const mistakeTrackerRef = useRef(new MistakeTracker());
   const previousInputRef = useRef('');
+  const finishTestRef = useRef(null);
 
   // Focus input on mount
   useEffect(() => {
@@ -26,7 +27,10 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          finishTest();
+          // Use the ref to call the latest version of finishTest
+          if (finishTestRef.current) {
+            finishTestRef.current();
+          }
           return 0;
         }
         return prev - 1;
@@ -54,11 +58,14 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
   }, [isTestActive, startTime, userInput, lastWpmUpdate]);
 
   const finishTest = () => {
-    if (!startTime) return;
+    // If test never started, don't finish
+    if (!isTestActive) return;
 
     setIsTestActive(false);
+
+    // Calculate total time
     const endTime = Date.now();
-    const totalTime = (endTime - startTime) / 1000;
+    const totalTime = startTime ? (endTime - startTime) / 1000 : 0;
 
     // Calculate stats
     const correctChars = userInput.split('').filter((char, i) => char === targetText[i]).length;
@@ -82,6 +89,9 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
       wpmHistory,
     });
   };
+
+  // Update the ref whenever finishTest changes
+  finishTestRef.current = finishTest;
 
   const handleInputChange = (e) => {
     const newInput = e.target.value;
