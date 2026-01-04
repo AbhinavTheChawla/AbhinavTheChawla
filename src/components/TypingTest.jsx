@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Hash, RotateCcw, Trash2 } from 'lucide-react';
+import { Clock, Hash, RotateCcw, Trash2, History } from 'lucide-react';
 import TypingTestCore from './TypingTestCore';
 import ResultsScreen from './ResultsScreen';
 import {
@@ -9,6 +9,9 @@ import {
   updateMistakeHistory,
   getHistoricalTopMistakes,
   clearMistakeHistory,
+  saveTestResult,
+  loadTestHistory,
+  clearTestHistory,
 } from '../utils/mistakeUtils';
 
 const TypingTest = () => {
@@ -18,13 +21,17 @@ const TypingTest = () => {
   const [testResults, setTestResults] = useState(null);
   const [drillData, setDrillData] = useState(null);
   const [historicalMistakes, setHistoricalMistakes] = useState([]);
+  const [testHistory, setTestHistory] = useState([]);
 
   const testCoreRef = useRef(null);
 
-  // Load historical mistakes on mount
+  // Load historical mistakes and test history on mount
   useEffect(() => {
     const mistakes = getHistoricalTopMistakes(5);
     setHistoricalMistakes(mistakes);
+
+    const history = loadTestHistory();
+    setTestHistory(history);
   }, []);
 
   // Keyboard shortcuts
@@ -68,6 +75,17 @@ const TypingTest = () => {
     const mistakes = getHistoricalTopMistakes(5);
     setHistoricalMistakes(mistakes);
 
+    // Save test result to history
+    const modeString = mode.type === 'timed' ? `${mode.value}s` : `${mode.value} words`;
+    saveTestResult({
+      ...results,
+      mode: modeString,
+    });
+
+    // Reload test history
+    const history = loadTestHistory();
+    setTestHistory(history);
+
     setTestResults(results);
     setTestState('results');
   };
@@ -95,6 +113,13 @@ const TypingTest = () => {
     if (window.confirm('Are you sure you want to clear all mistake history? This cannot be undone.')) {
       clearMistakeHistory();
       setHistoricalMistakes([]);
+    }
+  };
+
+  const handleClearTestHistory = () => {
+    if (window.confirm('Are you sure you want to clear all test history? This cannot be undone.')) {
+      clearTestHistory();
+      setTestHistory([]);
     }
   };
 
@@ -255,6 +280,68 @@ const TypingTest = () => {
         >
           Start Test
         </button>
+
+        {/* Test History */}
+        {testHistory.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold text-slate-700 flex items-center gap-2">
+                <History size={20} />
+                Test History ({testHistory.length})
+              </h3>
+              <button
+                onClick={handleClearTestHistory}
+                className="text-red-600 hover:text-red-700 hover:bg-red-100 px-3 py-1 rounded-lg transition-all duration-200 flex items-center gap-1 text-sm font-medium"
+                title="Clear test history"
+              >
+                <Trash2 size={14} />
+                Clear
+              </button>
+            </div>
+
+            {/* Last 10 tests table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-blue-200">
+                    <th className="text-left py-2 px-2 font-semibold text-slate-700">Date</th>
+                    <th className="text-left py-2 px-2 font-semibold text-slate-700">Mode</th>
+                    <th className="text-center py-2 px-2 font-semibold text-slate-700">WPM</th>
+                    <th className="text-center py-2 px-2 font-semibold text-slate-700">Accuracy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {testHistory.slice(-10).reverse().map((test, index) => (
+                    <tr key={test.id} className="border-b border-blue-100">
+                      <td className="py-2 px-2 text-slate-600">
+                        {new Date(test.timestamp).toLocaleDateString()} {new Date(test.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="py-2 px-2 text-slate-600">{test.mode}</td>
+                      <td className="py-2 px-2 text-center">
+                        <span className="font-bold text-blue-700">{test.wpm}</span>
+                        <span className="text-slate-500 text-xs ml-1">({test.rawWpm})</span>
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        <span className={`font-semibold ${test.accuracy >= 95 ? 'text-green-600' : test.accuracy >= 85 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {test.accuracy}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Average WPM */}
+            {testHistory.length > 0 && (
+              <div className="mt-4 p-3 bg-white rounded-lg">
+                <div className="text-sm text-slate-600">
+                  Average WPM (last 10): <span className="font-bold text-blue-700">{Math.round(testHistory.slice(-10).reduce((sum, test) => sum + test.wpm, 0) / Math.min(testHistory.length, 10))}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Keyboard Shortcuts Help */}
         <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
