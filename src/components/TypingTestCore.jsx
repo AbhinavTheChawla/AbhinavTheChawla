@@ -74,6 +74,37 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
     const rawWpm = calculateWPM(totalChars, totalTime);
     const accuracy = calculateAccuracy(correctChars, totalChars);
 
+    // Update mistakes to mark which were backspaced vs submitted
+    // A mistake was backspaced if the final character at that position is correct
+    const allMistakes = mistakeTrackerRef.current.getAllMistakes();
+    allMistakes.forEach(mistake => {
+      // Find the position in the original target text
+      let targetIndex = 0;
+      let currentWordIndex = 0;
+      let positionInWord = 0;
+
+      // Calculate the actual index in targetText from wordIndex and position
+      for (let i = 0; i < targetText.length; i++) {
+        if (currentWordIndex === mistake.wordIndex && positionInWord === mistake.position) {
+          targetIndex = i;
+          break;
+        }
+        if (targetText[i] === ' ') {
+          currentWordIndex++;
+          positionInWord = 0;
+        } else {
+          positionInWord++;
+        }
+      }
+
+      // Check if the final submitted character at this position is correct
+      const finalChar = userInput[targetIndex];
+      const expectedChar = targetText[targetIndex];
+
+      // If final char matches expected, the mistake was corrected (backspaced)
+      mistake.wasBackspaced = (finalChar === expectedChar);
+    });
+
     // Get mistake data
     const mistakeStats = mistakeTrackerRef.current.getStats();
 
@@ -84,7 +115,7 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
       totalTime,
       correctChars,
       totalChars,
-      mistakes: mistakeTrackerRef.current.getAllMistakes(),
+      mistakes: allMistakes,
       mistakeStats,
       wpmHistory,
     });
@@ -102,31 +133,11 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
       setStartTime(Date.now());
     }
 
-    // Track mistakes
+    // Track mistakes - only when typing, not when backspacing
     const previousInput = previousInputRef.current;
 
-    // Check if user backspaced
-    if (newInput.length < previousInput.length) {
-      // User deleted character(s)
-      const deletedIndex = newInput.length;
-      const deletedChar = previousInput[deletedIndex];
-      const expectedChar = targetText[deletedIndex];
-
-      // If the deleted character was wrong, it's a backspaced mistake
-      if (deletedChar !== expectedChar) {
-        const wordIndex = targetText.slice(0, deletedIndex).split(' ').length - 1;
-        const position = deletedIndex - targetText.slice(0, deletedIndex).lastIndexOf(' ') - 1;
-
-        mistakeTrackerRef.current.recordMistake(
-          expectedChar,
-          deletedChar,
-          position,
-          wordIndex,
-          true, // wasBackspaced
-          Date.now()
-        );
-      }
-    } else if (newInput.length > previousInput.length) {
+    // Only track when user adds characters (not when deleting/backspacing)
+    if (newInput.length > previousInput.length) {
       // User added character(s)
       const addedIndex = previousInput.length;
       const addedChar = newInput[addedIndex];
@@ -137,12 +148,14 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
         const wordIndex = targetText.slice(0, addedIndex).split(' ').length - 1;
         const position = addedIndex - targetText.slice(0, addedIndex).lastIndexOf(' ') - 1;
 
+        // Check if this mistake was later corrected by comparing final input with target
+        // (we'll determine wasBackspaced at the end based on final submitted text)
         mistakeTrackerRef.current.recordMistake(
           expectedChar,
           addedChar,
           position,
           wordIndex,
-          false, // Not backspaced (yet)
+          false, // Will be updated in finishTest based on final text
           Date.now()
         );
       }
