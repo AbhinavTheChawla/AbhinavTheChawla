@@ -8,7 +8,6 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
   const [timeLeft, setTimeLeft] = useState(duration);
   const [isTestActive, setIsTestActive] = useState(false);
   const [wpmHistory, setWpmHistory] = useState([]);
-  const [lastWpmUpdate, setLastWpmUpdate] = useState(0);
 
   const inputRef = useRef(null);
   const mistakeTrackerRef = useRef(new MistakeTracker());
@@ -46,16 +45,24 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
 
     const interval = setInterval(() => {
       const elapsedSeconds = (Date.now() - startTime) / 1000;
-      if (elapsedSeconds >= lastWpmUpdate + 2) {
+      // Record WPM every 2 seconds
+      if (elapsedSeconds >= 2 && Math.floor(elapsedSeconds) % 2 === 0) {
         const correctChars = userInput.split('').filter((char, i) => char === targetText[i]).length;
         const currentWpm = calculateWPM(correctChars, elapsedSeconds);
-        setWpmHistory(prev => [...prev, currentWpm]);
-        setLastWpmUpdate(elapsedSeconds);
+
+        setWpmHistory(prev => {
+          // Avoid duplicates - check if we already have this time point
+          const timePoint = Math.floor(elapsedSeconds);
+          const exists = prev.some(entry => entry.time === timePoint);
+          if (exists) return prev;
+
+          return [...prev, { time: timePoint, wpm: currentWpm }];
+        });
       }
     }, 500);
 
     return () => clearInterval(interval);
-  }, [isTestActive, startTime, userInput, lastWpmUpdate]);
+  }, [isTestActive, startTime, userInput, targetText]);
 
   const finishTest = () => {
     // If test never started, don't finish

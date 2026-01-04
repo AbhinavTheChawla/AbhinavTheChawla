@@ -15,13 +15,20 @@ const ResultsScreen = ({ results, onRetry, onGenerateDrill, targetedMistakes }) 
     wpmHistory,
   } = results;
 
-  const consistency = calculateConsistency(wpmHistory);
+  // Extract WPM values for consistency calculation
+  const wpmValues = Array.isArray(wpmHistory) && wpmHistory.length > 0 && typeof wpmHistory[0] === 'object'
+    ? wpmHistory.map(entry => entry.wpm)
+    : wpmHistory;
 
-  // Prepare chart data
-  const chartData = wpmHistory.map((wpm, index) => ({
-    time: (index + 1) * 2,
-    wpm,
-  }));
+  const consistency = calculateConsistency(wpmValues);
+
+  // Prepare chart data - handle both old and new format
+  const chartData = Array.isArray(wpmHistory) && wpmHistory.length > 0 && typeof wpmHistory[0] === 'object'
+    ? wpmHistory
+    : wpmHistory.map((wpm, index) => ({
+        time: (index + 1) * 2,
+        wpm,
+      }));
 
   // Character breakdown
   const incorrectChars = totalChars - correctChars;

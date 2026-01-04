@@ -147,6 +147,7 @@ export function generateDrill(mistakeTracker, wordCount = 25) {
 
 // LocalStorage persistence
 const STORAGE_KEY = 'typing_test_mistake_history';
+const TEST_HISTORY_KEY = 'typing_test_history';
 
 export function loadMistakeHistory() {
   try {
@@ -250,4 +251,52 @@ export function calculateConsistency(wpmHistory) {
   // Convert to consistency percentage (lower stdDev = higher consistency)
   const consistency = Math.max(0, 100 - (stdDev * 2));
   return Math.round(consistency);
+}
+
+// Test history management
+export function saveTestResult(testResult) {
+  try {
+    const history = loadTestHistory();
+    const newEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      wpm: testResult.wpm,
+      rawWpm: testResult.rawWpm,
+      accuracy: testResult.accuracy,
+      totalTime: testResult.totalTime,
+      mode: testResult.mode || 'unknown',
+    };
+
+    history.push(newEntry);
+
+    // Keep only last 50 tests
+    const trimmedHistory = history.slice(-50);
+
+    localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(trimmedHistory));
+    return true;
+  } catch (error) {
+    console.error('Failed to save test result:', error);
+    return false;
+  }
+}
+
+export function loadTestHistory() {
+  try {
+    const data = localStorage.getItem(TEST_HISTORY_KEY);
+    if (!data) return [];
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Failed to load test history:', error);
+    return [];
+  }
+}
+
+export function clearTestHistory() {
+  try {
+    localStorage.removeItem(TEST_HISTORY_KEY);
+    return true;
+  } catch (error) {
+    console.error('Failed to clear test history:', error);
+    return false;
+  }
 }
