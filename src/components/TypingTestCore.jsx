@@ -19,6 +19,20 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
     inputRef.current?.focus();
   }, []);
 
+  // Prevent scroll on input focus (mobile fix)
+  useEffect(() => {
+    const handleFocus = () => {
+      // Prevent browser from scrolling to the input on mobile
+      window.scrollTo(0, 0);
+    };
+
+    const input = inputRef.current;
+    if (input) {
+      input.addEventListener('focus', handleFocus);
+      return () => input.removeEventListener('focus', handleFocus);
+    }
+  }, []);
+
   // Timer for timed mode
   useEffect(() => {
     if (!isTestActive || mode.type !== 'timed') return;
@@ -219,8 +233,18 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
   const liveRawWpm = elapsedSeconds > 0 ? calculateWPM(userInput.length, elapsedSeconds) : 0;
   const liveAccuracy = calculateAccuracy(correctChars, userInput.length);
 
+  // Handle click/touch to refocus input (mobile-friendly)
+  const handleContainerClick = (e) => {
+    e.preventDefault();
+    if (inputRef.current) {
+      inputRef.current.focus();
+      // Prevent scroll on mobile
+      setTimeout(() => window.scrollTo(0, 0), 0);
+    }
+  };
+
   return (
-    <div className="space-y-6" onClick={() => inputRef.current?.focus()}>
+    <div className="space-y-6" onClick={handleContainerClick} onTouchStart={handleContainerClick}>
       {/* Stats Bar */}
       <div className="flex flex-wrap justify-between items-center bg-slate-100 px-4 sm:px-6 py-3 sm:py-4 rounded-xl gap-4">
         <div className="flex gap-4 sm:gap-8">
@@ -261,14 +285,15 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
         </div>
       </div>
 
-      {/* Hidden Input */}
+      {/* Hidden Input - Fixed position at top to prevent mobile scroll issues */}
       <input
         ref={inputRef}
         type="text"
         value={userInput}
         onChange={handleInputChange}
-        className="opacity-0 absolute pointer-events-none"
+        className="fixed top-0 left-0 opacity-0 w-1 h-1 pointer-events-none"
         autoFocus
+        style={{ caretColor: 'transparent' }}
       />
 
       {/* Focus Hint */}
