@@ -22,6 +22,7 @@ const Food = () => {
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [newRecipeName, setNewRecipeName] = useState('');
   const [newRecipeDescription, setNewRecipeDescription] = useState('');
+  const [newRecipeLink, setNewRecipeLink] = useState('');
   const [newRecipeTags, setNewRecipeTags] = useState([]);
   const [currentTagInput, setCurrentTagInput] = useState('');
   const [selectedFilters, setSelectedFilters] = useState([]);
@@ -119,10 +120,11 @@ const Food = () => {
     if (newRecipeName.trim()) {
       updateFoodData({
         ...foodData,
-        recipes: [...foodData.recipes, { name: newRecipeName, description: newRecipeDescription, tags: newRecipeTags }]
+        recipes: [...foodData.recipes, { name: newRecipeName, description: newRecipeDescription, link: newRecipeLink, tags: newRecipeTags }]
       });
       setNewRecipeName('');
       setNewRecipeDescription('');
+      setNewRecipeLink('');
       setNewRecipeTags([]);
       setCurrentTagInput('');
     }
@@ -360,6 +362,13 @@ const Food = () => {
             className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm resize-none"
             rows={3}
           />
+          <input
+            type="text"
+            value={newRecipeLink}
+            onChange={(e) => setNewRecipeLink(e.target.value)}
+            placeholder="Recipe link (optional)..."
+            className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm"
+          />
           <div>
             <div className="flex gap-2 mb-2 relative">
               <div className="flex-1 relative">
@@ -522,6 +531,36 @@ const Food = () => {
 
                 {expandedRecipe === index && (
                   <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Recipe Name</label>
+                      <input
+                        type="text"
+                        value={recipe.name}
+                        onChange={(e) => updateRecipe(index, 'name', e.target.value)}
+                        placeholder="Recipe name..."
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Recipe Link</label>
+                      <input
+                        type="text"
+                        value={recipe.link || ''}
+                        onChange={(e) => updateRecipe(index, 'link', e.target.value)}
+                        placeholder="Add recipe link..."
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                      />
+                      {recipe.link && (
+                        <a
+                          href={recipe.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block mt-2 text-indigo-600 hover:text-indigo-800 text-sm underline"
+                        >
+                          Open link →
+                        </a>
+                      )}
+                    </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Tags</label>
                       <div className="flex gap-2 mb-2 relative">
