@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS user_data (
   -- Media data stores: consumed media, toConsume queue, and weeklyRecaps
   media_data JSONB,
   todo_notes JSONB,
-  ai_chat_history JSONB,
+  -- Network data stores: contacts list and weekly planner
+  network_data JSONB,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -83,13 +84,13 @@ BEGIN
         RAISE NOTICE 'Added todo_notes column';
     END IF;
 
-    -- Add ai_chat_history column if missing
+    -- Add network_data column if missing
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'user_data' AND column_name = 'ai_chat_history'
+        WHERE table_name = 'user_data' AND column_name = 'network_data'
     ) THEN
-        ALTER TABLE user_data ADD COLUMN ai_chat_history JSONB;
-        RAISE NOTICE 'Added ai_chat_history column';
+        ALTER TABLE user_data ADD COLUMN network_data JSONB;
+        RAISE NOTICE 'Added network_data column';
     END IF;
 
     -- Add media_data column if missing

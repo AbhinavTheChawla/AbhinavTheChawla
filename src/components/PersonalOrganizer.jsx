@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Sparkles, Settings, Keyboard } from 'lucide-react';
+import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Settings, Keyboard, Users } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Todo from './Todo';
-import AgentOrchestrator from '../agents/AgentOrchestrator';
 import SyncSettings from './SyncSettings';
 import Food from './Food';
 import Media from './Media';
 import TypingTest from './TypingTest';
+import NetworkTracker from './NetworkTracker';
 import useStore from '../store';
 import { initializeSupabase } from '../services/supabaseClient';
 import { syncService } from '../services/syncService';
@@ -24,6 +24,7 @@ const PersonalOrganizer = () => {
   const dailyReflection = useStore((state) => state.dailyReflection);
   const weeklyTracker = useStore((state) => state.weeklyTracker);
   const weightData = useStore((state) => state.weightData);
+  const networkData = useStore((state) => state.networkData);
 
   const updateCategories = useStore((state) => state.updateCategories);
   const updateWardrobe = useStore((state) => state.updateWardrobe);
@@ -152,7 +153,7 @@ const PersonalOrganizer = () => {
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, foodData, mediaData, groomingData, dailyReflection, weeklyTracker, weightData, supabaseUrl, supabaseAnonKey, userId]);
+  }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, foodData, mediaData, groomingData, dailyReflection, weeklyTracker, weightData, networkData, supabaseUrl, supabaseAnonKey, userId]);
 
   // Real-time polling for cross-device sync (check every 10 seconds)
   useEffect(() => {
@@ -450,16 +451,16 @@ const PersonalOrganizer = () => {
             Food
           </button>
           <button
-            onClick={() => setActiveTab('ai')}
+            onClick={() => setActiveTab('network')}
             className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 flex items-center gap-1 sm:gap-2 whitespace-nowrap ${
-              activeTab === 'ai'
-                ? 'border-violet-600 text-violet-600'
+              activeTab === 'network'
+                ? 'border-cyan-600 text-cyan-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
-            <Sparkles size={14} className={activeTab === 'ai' ? 'fill-violet-600' : ''} />
-            <span className="hidden sm:inline">AI Assistant</span>
-            <span className="sm:hidden">AI</span>
+            <Users size={14} />
+            <span className="hidden sm:inline">Network</span>
+            <span className="sm:hidden">Network</span>
           </button>
           <button
             onClick={() => setActiveTab('typing')}
@@ -680,9 +681,9 @@ const PersonalOrganizer = () => {
           <Food />
         )}
 
-        {/* AI Assistant Tab Content */}
-        {activeTab === 'ai' && (
-          <AgentOrchestrator />
+        {/* Network Tracker Tab Content */}
+        {activeTab === 'network' && (
+          <NetworkTracker />
         )}
 
         {/* Typing Test Tab Content */}
