@@ -153,9 +153,6 @@ const useStore = create((set, get) => ({
     notes: ''
   }),
 
-  // AI Settings
-  claudeApiKey: loadFromStorage('claude_api_key', ''),
-
   // Supabase Settings - Auto-initialize from config or localStorage
   ...(() => {
     const { url, anonKey, userId } = initializeSupabaseCredentials();
@@ -244,6 +241,12 @@ const useStore = create((set, get) => ({
     frameworks: [] // Array of frameworks: { id, title, description, examples, dateAdded }
   }),
 
+  // Network Tracker State
+  networkData: loadFromStorage('networkData', {
+    contacts: [], // Array of contacts: { id, name, company, position, location, linkedin_url, notes, date_added, last_contact_date, contact_type, status }
+    weeklyPlanner: [] // Array of contact IDs for this week's catch-ups (max 3)
+  }),
+
   // Actions for Wardrobe
   updateCategories: (categories) => {
     set({ categories });
@@ -317,10 +320,10 @@ const useStore = create((set, get) => ({
     saveToStorage('mediaData', mediaData);
   },
 
-  // Actions for AI Settings
-  updateClaudeApiKey: (apiKey) => {
-    set({ claudeApiKey: apiKey });
-    saveToStorage('claude_api_key', apiKey);
+  // Actions for Network Tracker
+  updateNetworkData: (networkData) => {
+    set({ networkData });
+    saveToStorage('networkData', networkData);
   },
 
   // Actions for Supabase Settings
@@ -329,23 +332,6 @@ const useStore = create((set, get) => ({
     saveToStorage('supabase_url', url);
     saveToStorage('supabase_anon_key', anonKey);
     saveToStorage('user_id', userId);
-  },
-
-  // Get all data for AI context
-  getAllData: () => {
-    const state = get();
-    return {
-      wardrobe: {
-        categories: state.categories,
-        data: state.wardrobeData,
-        wishlist: Array.from(state.wishlist),
-        brandUrls: state.brandUrls,
-        wishlistUrls: state.wishlistUrls,
-        imageUrls: state.imageUrls
-      },
-      grooming: state.groomingData,
-      blueprint: state.blueprintData
-    };
   },
 
   // Reload all state from localStorage (useful after sync download)
@@ -521,6 +507,10 @@ const useStore = create((set, get) => ({
         toConsume: [],
         weeklyRecaps: [],
         frameworks: [] // { id, title, description, examples, dateAdded }
+      }),
+      networkData: loadFromStorage('networkData', {
+        contacts: [],
+        weeklyPlanner: []
       })
     });
   }

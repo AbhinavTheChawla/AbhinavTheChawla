@@ -22,7 +22,7 @@ import { getSupabase } from './supabaseClient';
  *   food_data JSONB,
  *   media_data JSONB,
  *   todo_notes JSONB,
- *   ai_chat_history JSONB,
+ *   network_data JSONB,
  *   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
  * );
  *
@@ -131,7 +131,7 @@ class SyncService {
         food_data: JSON.parse(localStorage.getItem('foodData') || 'null'),
         media_data: JSON.parse(localStorage.getItem('mediaData') || 'null'),
         todo_notes: JSON.parse(localStorage.getItem('todo_notes') || 'null'),
-        ai_chat_history: JSON.parse(localStorage.getItem('ai_chat_history') || 'null'),
+        network_data: JSON.parse(localStorage.getItem('networkData') || 'null'),
         updated_at: new Date().toISOString()
       };
 
@@ -206,7 +206,7 @@ class SyncService {
         hasChanges = this.updateLocalStorageIfChanged('foodData', data.food_data) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('mediaData', data.media_data) || hasChanges;
         hasChanges = this.updateLocalStorageIfChanged('todo_notes', data.todo_notes) || hasChanges;
-        hasChanges = this.updateLocalStorageIfChanged('ai_chat_history', data.ai_chat_history) || hasChanges;
+        hasChanges = this.updateLocalStorageIfChanged('networkData', data.network_data) || hasChanges;
 
         this.lastSyncTime = new Date();
         console.log('✅ Data downloaded successfully', hasChanges ? '(changes detected)' : '(no changes)');
