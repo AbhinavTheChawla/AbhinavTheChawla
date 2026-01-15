@@ -13,11 +13,60 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
   const mistakeTrackerRef = useRef(new MistakeTracker());
   const previousInputRef = useRef('');
   const finishTestRef = useRef(null);
+  const containerRef = useRef(null);
 
   // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Aggressive scroll prevention for mobile
+  useEffect(() => {
+    const preventScroll = (e) => {
+      // Only prevent scroll if it's from the input focusing
+      if (document.activeElement === inputRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.scrollTo(0, 0);
+      }
+    };
+
+    const handleFocus = (e) => {
+      e.preventDefault();
+      // Lock scroll position
+      const scrollY = window.scrollY;
+      window.scrollTo(0, scrollY);
+
+      // Force scroll to top after a delay
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+      });
+    };
+
+    const handleTouchMove = (e) => {
+      // Prevent scrolling when typing
+      if (document.activeElement === inputRef.current && isTestActive) {
+        e.preventDefault();
+      }
+    };
+
+    const input = inputRef.current;
+    const container = containerRef.current;
+
+    if (input) {
+      input.addEventListener('focus', handleFocus, { passive: false });
+      input.addEventListener('touchstart', preventScroll, { passive: false });
+      window.addEventListener('scroll', preventScroll, { passive: false });
+
+      return () => {
+        input.removeEventListener('focus', handleFocus);
+        input.removeEventListener('touchstart', preventScroll);
+        window.removeEventListener('scroll', preventScroll);
+      };
+    }
+  }, [isTestActive]);
 
   // Timer for timed mode
   useEffect(() => {
@@ -219,8 +268,28 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
   const liveRawWpm = elapsedSeconds > 0 ? calculateWPM(userInput.length, elapsedSeconds) : 0;
   const liveAccuracy = calculateAccuracy(correctChars, userInput.length);
 
+  // Handle click/touch to refocus input (mobile-friendly)
+  const handleContainerClick = (e) => {
+    e.preventDefault();
+    if (inputRef.current) {
+      // Store current scroll position
+      const currentScroll = window.scrollY;
+
+      inputRef.current.focus({ preventScroll: true });
+
+      // Force maintain scroll position
+      requestAnimationFrame(() => {
+        window.scrollTo(0, currentScroll);
+      });
+
+      setTimeout(() => {
+        window.scrollTo(0, currentScroll);
+      }, 0);
+    }
+  };
+
   return (
-    <div className="space-y-6" onClick={() => inputRef.current?.focus()}>
+    <div ref={containerRef} className="space-y-6" onClick={handleContainerClick} onTouchStart={handleContainerClick}>
       {/* Stats Bar */}
       <div className="flex flex-wrap justify-between items-center bg-slate-100 px-4 sm:px-6 py-3 sm:py-4 rounded-xl gap-4">
         <div className="flex gap-4 sm:gap-8">
@@ -261,13 +330,30 @@ const TypingTestCore = ({ targetText, onComplete, mode, duration }) => {
         </div>
       </div>
 
-      {/* Hidden Input */}
+      {/* Hidden Input - Positioned in center to prevent mobile scroll */}
       <input
         ref={inputRef}
         type="text"
         value={userInput}
         onChange={handleInputChange}
-        className="opacity-0 absolute pointer-events-none"
+        className="fixed opacity-0 pointer-events-none"
+        style={{
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '1px',
+          height: '1px',
+          fontSize: '16px', // Prevents zoom on iOS
+          caretColor: 'transparent',
+          border: 'none',
+          outline: 'none',
+          padding: 0,
+          margin: 0,
+        }}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck="false"
         autoFocus
       />
 
