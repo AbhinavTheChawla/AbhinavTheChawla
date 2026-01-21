@@ -21,11 +21,14 @@ const GroomingJournal = () => {
   const updateCell = (category, rowIndex, colIndex, value) => {
     const newData = {
       ...data,
-      [category]: (data[category] || []).map((row, i) =>
-        i === rowIndex
-          ? row.map((cell, j) => (j === colIndex ? value : cell))
-          : row
-      )
+      [category]: (data[category] || []).map((row, i) => {
+        if (i === rowIndex) {
+          // Ensure row has at least 3 elements
+          const paddedRow = [...row, '', '', ''].slice(0, 3);
+          return paddedRow.map((cell, j) => (j === colIndex ? value : cell));
+        }
+        return row;
+      })
     };
     updateGrooming(newData);
   };
