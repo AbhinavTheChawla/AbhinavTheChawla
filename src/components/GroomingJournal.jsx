@@ -33,7 +33,7 @@ const GroomingJournal = () => {
   const addRow = (category) => {
     const newData = {
       ...data,
-      [category]: [...(data[category] || []), ['', '']]
+      [category]: [...(data[category] || []), ['', '', '']]
     };
     updateGrooming(newData);
   };
@@ -81,8 +81,10 @@ const GroomingJournal = () => {
         const prefix = numbered ? `${index + 1}. ` : '• ';
         const product = item[0] || '(unnamed)';
         const details = item[1] || '(no details)';
+        const sourcing = item[2] || '(no sourcing info)';
         section += `${prefix}${product}\n`;
         section += `   ${details}\n`;
+        section += `   Sourcing: ${sourcing}\n`;
       });
       section += `\n`;
       return section;
@@ -135,6 +137,7 @@ const GroomingJournal = () => {
                 {hasNumbers && <th className="p-2 sm:p-3 text-left text-xs font-semibold text-slate-500 w-8 sm:w-12">#</th>}
                 <th className="p-2 sm:p-3 text-left text-xs font-semibold text-slate-500">Product</th>
                 <th className="p-2 sm:p-3 text-left text-xs font-semibold text-slate-500">Details</th>
+                <th className="p-2 sm:p-3 text-left text-xs font-semibold text-slate-500">Sourcing</th>
                 <th className="p-2 sm:p-3 text-center text-xs font-semibold text-slate-500 w-12 sm:w-16"></th>
               </tr>
             </thead>
@@ -160,6 +163,15 @@ const GroomingJournal = () => {
                       onChange={(e) => updateCell(category, i, 1, e.target.value)}
                       className="w-full border border-transparent hover:border-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 rounded px-2 py-1 sm:py-1.5 text-xs sm:text-sm transition-all"
                       placeholder="Enter details..."
+                    />
+                  </td>
+                  <td className="p-2 sm:p-3">
+                    <input
+                      type="text"
+                      value={row[2] || ''}
+                      onChange={(e) => updateCell(category, i, 2, e.target.value)}
+                      className="w-full border border-transparent hover:border-slate-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 rounded px-2 py-1 sm:py-1.5 text-xs sm:text-sm transition-all"
+                      placeholder="Enter sourcing info..."
                     />
                   </td>
                   <td className="p-2 sm:p-3 text-center">

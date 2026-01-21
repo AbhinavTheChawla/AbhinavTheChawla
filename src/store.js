@@ -111,44 +111,44 @@ const useStore = create((set, get) => ({
   // Grooming State
   groomingData: loadFromStorage('groomingData', {
     am: [
-      ['Gentle Cleanser', 'CeraVe Hydrating Cleanser'],
-      ['Toner', 'Thayers Witch Hazel'],
-      ['Vitamin C Serum', 'The Ordinary Vitamin C 23%'],
-      ['Moisturizer', 'Cetaphil Daily Hydrating Lotion'],
-      ['Sunscreen SPF 50', 'La Roche-Posay Anthelios']
+      ['Gentle Cleanser', 'CeraVe Hydrating Cleanser', ''],
+      ['Toner', 'Thayers Witch Hazel', ''],
+      ['Vitamin C Serum', 'The Ordinary Vitamin C 23%', ''],
+      ['Moisturizer', 'Cetaphil Daily Hydrating Lotion', ''],
+      ['Sunscreen SPF 50', 'La Roche-Posay Anthelios', '']
     ],
     pm: [
-      ['Oil Cleanser', 'DHC Deep Cleansing Oil'],
-      ['Foaming Cleanser', 'CeraVe Foaming Facial Cleanser'],
-      ['Exfoliant', 'Paula\'s Choice 2% BHA - 2-3x/week'],
-      ['Retinol Serum', 'The Ordinary Retinol 0.5%'],
-      ['Night Cream', 'Neutrogena Hydro Boost Night']
+      ['Oil Cleanser', 'DHC Deep Cleansing Oil', ''],
+      ['Foaming Cleanser', 'CeraVe Foaming Facial Cleanser', ''],
+      ['Exfoliant', 'Paula\'s Choice 2% BHA - 2-3x/week', ''],
+      ['Retinol Serum', 'The Ordinary Retinol 0.5%', ''],
+      ['Night Cream', 'Neutrogena Hydro Boost Night', '']
     ],
     shaving: [
-      ['Face: Wet Shave', 'Every other day - Safety razor'],
-      ['Body: Trimmer', 'Weekly - Guard #2'],
-      ['Laser: Back & Shoulders', 'Session 4/8 - Next: Nov 15']
+      ['Face: Wet Shave', 'Every other day - Safety razor', ''],
+      ['Body: Trimmer', 'Weekly - Guard #2', ''],
+      ['Laser: Back & Shoulders', 'Session 4/8 - Next: Nov 15', '']
     ],
     hair: [
-      ['Shampoo', 'Olaplex No. 4 - 2-3x/week'],
-      ['Conditioner', 'Olaplex No. 5'],
-      ['Hair Oil', 'Moroccanoil - 1-2 pumps'],
-      ['Styling', 'Baxter Clay Pomade']
+      ['Shampoo', 'Olaplex No. 4 - 2-3x/week', ''],
+      ['Conditioner', 'Olaplex No. 5', ''],
+      ['Hair Oil', 'Moroccanoil - 1-2 pumps', ''],
+      ['Styling', 'Baxter Clay Pomade', '']
     ],
     perfumes: [
-      ['Daily: Bleu de Chanel', 'Woody aromatic'],
-      ['Evening: Dior Sauvage', 'Fresh spicy'],
-      ['Summer: Acqua di Gio', 'Aquatic citrus']
+      ['Daily: Bleu de Chanel', 'Woody aromatic', ''],
+      ['Evening: Dior Sauvage', 'Fresh spicy', ''],
+      ['Summer: Acqua di Gio', 'Aquatic citrus', '']
     ],
     supplements: [
-      ['Morning: Multivitamin', 'Garden of Life Men\'s Multi'],
-      ['Morning: Vitamin D3', '5000 IU'],
-      ['Morning: Omega-3', 'Nordic Naturals - 2 caps'],
-      ['Evening: Magnesium', '400mg before bed']
+      ['Morning: Multivitamin', 'Garden of Life Men\'s Multi', ''],
+      ['Morning: Vitamin D3', '5000 IU', ''],
+      ['Morning: Omega-3', 'Nordic Naturals - 2 caps', ''],
+      ['Evening: Magnesium', '400mg before bed', '']
     ],
     treatments: [
-      ['Treatment Name', 'Details'],
-      ['Treatment Name', 'Details']
+      ['Treatment Name', 'Details', ''],
+      ['Treatment Name', 'Details', '']
     ],
     notes: ''
   }),
