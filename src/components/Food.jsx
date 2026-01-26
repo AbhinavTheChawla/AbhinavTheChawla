@@ -18,7 +18,6 @@ const Food = () => {
     return () => window.removeEventListener('supabase-sync-complete', handleSync);
   }, [reloadFromStorage]);
 
-  const [groceryInput, setGroceryInput] = useState('');
   const [expandedRecipe, setExpandedRecipe] = useState(null);
   const [newRecipeName, setNewRecipeName] = useState('');
   const [newRecipeDescription, setNewRecipeDescription] = useState('');
@@ -48,46 +47,6 @@ const Food = () => {
     lunch: 'Lunch',
     dinner: 'Dinner',
     snack: 'Snack'
-  };
-
-  // Grocery list handlers
-  const handleGroceryInputKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const lines = groceryInput.split('\n');
-      const newItems = lines.filter(line => line.trim()).map(line => ({ text: line.trim(), checked: false }));
-
-      updateFoodData({
-        ...foodData,
-        groceryList: [...foodData.groceryList, ...newItems]
-      });
-
-      setGroceryInput('');
-    }
-  };
-
-  const toggleGroceryItem = (index) => {
-    const newList = [...foodData.groceryList];
-    newList[index].checked = !newList[index].checked;
-    updateFoodData({
-      ...foodData,
-      groceryList: newList
-    });
-  };
-
-  const deleteGroceryItem = (index) => {
-    const newList = foodData.groceryList.filter((_, i) => i !== index);
-    updateFoodData({
-      ...foodData,
-      groceryList: newList
-    });
-  };
-
-  const clearAllGroceryItems = () => {
-    updateFoodData({
-      ...foodData,
-      groceryList: []
-    });
   };
 
   // Meal plan handlers
@@ -246,53 +205,6 @@ const Food = () => {
 
   return (
     <div className="space-y-6">
-      {/* Grocery List Section */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Grocery List</h2>
-          {foodData.groceryList.length > 0 && (
-            <button
-              onClick={clearAllGroceryItems}
-              className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all flex items-center gap-2"
-            >
-              <Trash2 size={16} />
-              Clear All
-            </button>
-          )}
-        </div>
-
-        <textarea
-          value={groceryInput}
-          onChange={(e) => setGroceryInput(e.target.value)}
-          onKeyDown={handleGroceryInputKeyDown}
-          placeholder="Type grocery items (press Enter to add)..."
-          className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white shadow-sm mb-4 resize-none"
-          rows={1}
-        />
-
-        <div className="space-y-2">
-          {foodData.groceryList.map((item, index) => (
-            <div key={index} className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={item.checked}
-                onChange={() => toggleGroceryItem(index)}
-                className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-400"
-              />
-              <span className={`flex-1 text-sm ${item.checked ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                {item.text}
-              </span>
-              <button
-                onClick={() => deleteGroceryItem(index)}
-                className="text-red-500 hover:text-red-700 transition-all"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Food Planner Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
         <div className="flex justify-between items-center mb-4">
