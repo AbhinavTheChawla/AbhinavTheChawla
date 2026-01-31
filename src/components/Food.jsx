@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2 } from 'lucide-react';
+import { Plus, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import useStore from '../store';
 
 const Food = () => {
   const foodData = useStore((state) => state.foodData);
   const updateFoodData = useStore((state) => state.updateFoodData);
   const reloadFromStorage = useStore((state) => state.reloadFromStorage);
+
+  // Helper to get Monday of a given week
+  const getMondayOfWeek = (date = new Date()) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday.toISOString().split('T')[0];
+  };
+
+  // State for current viewed week
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => getMondayOfWeek());
 
   // Listen for cross-device sync events
   useEffect(() => {
@@ -49,28 +62,94 @@ const Food = () => {
     snack: 'Snack'
   };
 
+  // Week navigation functions
+  const navigateWeek = (direction) => {
+    const current = new Date(currentWeekStart);
+    current.setDate(current.getDate() + (direction * 7));
+    setCurrentWeekStart(current.toISOString().split('T')[0]);
+  };
+
+  const goToCurrentWeek = () => {
+    setCurrentWeekStart(getMondayOfWeek());
+  };
+
+  // Format week date range for display
+  const formatWeekRange = () => {
+    const start = new Date(currentWeekStart);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+
+    const options = { month: 'short', day: 'numeric' };
+    const startStr = start.toLocaleDateString('en-US', options);
+    const endStr = end.toLocaleDateString('en-US', { ...options, year: 'numeric' });
+
+    return `${startStr} - ${endStr}`;
+  };
+
+  // Check if viewing current week
+  const isCurrentWeek = () => currentWeekStart === getMondayOfWeek();
+
+  // Get empty meal plan structure
+  const getEmptyMealPlan = () => ({
+    monday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+    tuesday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+    wednesday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+    thursday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+    friday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+    saturday: { breakfast: '', lunch: '', dinner: '', snack: '' },
+    sunday: { breakfast: '', lunch: '', dinner: '', snack: '' }
+  });
+
+  // Get meal plan for current week (supports both old format and new week-based format)
+  const getCurrentMealPlan = () => {
+    const mealPlans = foodData.mealPlans || {};
+
+    // If we have week-based data for this week, use it
+    if (mealPlans[currentWeekStart]) {
+      return mealPlans[currentWeekStart];
+    }
+
+    // Migration: If viewing current week and old mealPlan exists with data, use it
+    if (isCurrentWeek() && foodData.mealPlan) {
+      const hasData = days.some(day =>
+        meals.some(meal => foodData.mealPlan[day]?.[meal])
+      );
+      if (hasData) {
+        return foodData.mealPlan;
+      }
+    }
+
+    return getEmptyMealPlan();
+  };
+
   // Meal plan handlers
   const updateMeal = (day, meal, value) => {
+    const currentPlan = getCurrentMealPlan();
+    const updatedPlan = {
+      ...currentPlan,
+      [day]: {
+        ...currentPlan[day],
+        [meal]: value
+      }
+    };
+
+    // Store in week-based structure
+    const mealPlans = { ...foodData.mealPlans } || {};
+    mealPlans[currentWeekStart] = updatedPlan;
+
     updateFoodData({
       ...foodData,
-      mealPlan: {
-        ...foodData.mealPlan,
-        [day]: {
-          ...foodData.mealPlan[day],
-          [meal]: value
-        }
-      }
+      mealPlans
     });
   };
 
   const clearAllMeals = () => {
-    const emptyPlan = {};
-    days.forEach(day => {
-      emptyPlan[day] = { breakfast: '', lunch: '', dinner: '', snack: '' };
-    });
+    const mealPlans = { ...foodData.mealPlans } || {};
+    mealPlans[currentWeekStart] = getEmptyMealPlan();
+
     updateFoodData({
       ...foodData,
-      mealPlan: emptyPlan
+      mealPlans
     });
   };
 
@@ -207,15 +286,48 @@ const Food = () => {
     <div className="space-y-6">
       {/* Food Planner Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
           <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Weekly Meal Planner</h2>
-          <button
-            onClick={clearAllMeals}
-            className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all flex items-center gap-2"
-          >
-            <Trash2 size={16} />
-            Clear All
-          </button>
+
+          {/* Week Navigation */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigateWeek(-1)}
+              className="p-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
+              title="Previous week"
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <div className="flex flex-col items-center min-w-[160px]">
+              <span className="text-sm font-semibold text-slate-700">{formatWeekRange()}</span>
+              {!isCurrentWeek() && (
+                <button
+                  onClick={goToCurrentWeek}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 underline mt-0.5"
+                >
+                  Go to current week
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => navigateWeek(1)}
+              className="p-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
+              title="Next week"
+            >
+              <ChevronRight size={20} />
+            </button>
+
+            <button
+              onClick={clearAllMeals}
+              className="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all flex items-center gap-1 ml-2"
+              title="Clear this week"
+            >
+              <Trash2 size={16} />
+              <span className="hidden sm:inline">Clear</span>
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -240,7 +352,7 @@ const Food = () => {
                     <td key={`${day}-${meal}`} className="p-1 border border-slate-200">
                       <input
                         type="text"
-                        value={foodData.mealPlan[day][meal]}
+                        value={getCurrentMealPlan()[day]?.[meal] || ''}
                         onChange={(e) => updateMeal(day, meal, e.target.value)}
                         placeholder="..."
                         className="w-full px-2 py-1.5 text-xs sm:text-sm border-0 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded bg-transparent hover:bg-white transition-colors"
