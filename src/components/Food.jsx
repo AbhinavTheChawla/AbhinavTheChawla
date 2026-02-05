@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, X, Trash2, ChevronLeft, ChevronRight, Copy, ClipboardPaste } from 'lucide-react';
 import useStore from '../store';
 
 const Food = () => {
@@ -43,6 +43,7 @@ const Food = () => {
   const [showDeletedModal, setShowDeletedModal] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [editSuggestionIndex, setEditSuggestionIndex] = useState({});
+  const [copiedWeekData, setCopiedWeekData] = useState(null);
 
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   const dayNames = {
@@ -146,6 +147,26 @@ const Food = () => {
   const clearAllMeals = () => {
     const mealPlans = { ...foodData.mealPlans } || {};
     mealPlans[currentWeekStart] = getEmptyMealPlan();
+
+    updateFoodData({
+      ...foodData,
+      mealPlans
+    });
+  };
+
+  // Copy current week's meal plan
+  const copyWeek = () => {
+    const currentPlan = getCurrentMealPlan();
+    // Deep copy to avoid reference issues
+    setCopiedWeekData(JSON.parse(JSON.stringify(currentPlan)));
+  };
+
+  // Paste copied meal plan to current week
+  const pasteWeek = () => {
+    if (!copiedWeekData) return;
+
+    const mealPlans = { ...foodData.mealPlans } || {};
+    mealPlans[currentWeekStart] = JSON.parse(JSON.stringify(copiedWeekData));
 
     updateFoodData({
       ...foodData,
@@ -320,8 +341,29 @@ const Food = () => {
             </button>
 
             <button
+              onClick={copyWeek}
+              className="p-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-all"
+              title="Copy this week's meals"
+            >
+              <Copy size={16} />
+            </button>
+
+            <button
+              onClick={pasteWeek}
+              disabled={!copiedWeekData}
+              className={`p-2 rounded-lg transition-all ${
+                copiedWeekData
+                  ? 'bg-green-500 text-white hover:bg-green-600'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+              title={copiedWeekData ? "Paste copied meals to this week" : "Copy a week first"}
+            >
+              <ClipboardPaste size={16} />
+            </button>
+
+            <button
               onClick={clearAllMeals}
-              className="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all flex items-center gap-1 ml-2"
+              className="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all flex items-center gap-1"
               title="Clear this week"
             >
               <Trash2 size={16} />
