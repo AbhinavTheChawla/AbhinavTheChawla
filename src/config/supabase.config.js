@@ -12,14 +12,14 @@
 
 export const SUPABASE_CONFIG = {
   // Your Supabase project URL
-  url: process.env.REACT_APP_SUPABASE_URL || '',
+  url: import.meta.env.VITE_SUPABASE_URL || '',
 
   // Your Supabase anon/public key (safe to expose in frontend)
-  anonKey: process.env.REACT_APP_SUPABASE_ANON_KEY || '',
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
 
   // Default user ID (you can customize this or leave it as is)
   // All devices using the same userId will sync together
-  defaultUserId: process.env.REACT_APP_USER_ID || 'default_user',
+  defaultUserId: import.meta.env.VITE_USER_ID || 'default_user',
 };
 
 // Helper to check if Supabase is configured
