@@ -61,14 +61,14 @@ CREATE POLICY "Allow all operations" ON user_data FOR ALL USING (true);
 2. Add these three lines (replace with your actual values):
 
 ```env
-REACT_APP_SUPABASE_URL=https://xxxxx.supabase.co
-REACT_APP_SUPABASE_ANON_KEY=your-anon-key-here
-REACT_APP_USER_ID=my_unique_id
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_USER_ID=my_unique_id
 ```
 
 **Important Notes:**
 - Replace the URL and key with values from Step 2
-- The `USER_ID` can be any unique string (e.g., your name, email, or any identifier)
+- The `VITE_USER_ID` can be any unique string (e.g., your name, email, or any identifier)
 - **All devices must use the SAME .env values to sync together**
 - The `.env` file is already in `.gitignore` so it won't be committed
 
@@ -96,7 +96,7 @@ REACT_APP_USER_ID=my_unique_id
 - **Auto-save**: Changes are saved to localStorage immediately
 - **Auto-upload**: Changes upload to Supabase cloud after 2 seconds
 - **Auto-download**: Every 10 seconds, the app checks for changes from other devices
-- **Cross-device**: Any device with the same `USER_ID` will sync together
+- **Cross-device**: Any device with the same `VITE_USER_ID` will sync together
 
 ## Verifying Sync is Working
 
@@ -113,7 +113,7 @@ REACT_APP_USER_ID=my_unique_id
 
 1. **Check .env file exists** in your project root
 2. **Verify values** - URL should start with `https://` and key should be a long string
-3. **Same USER_ID** on all devices
+3. **Same VITE_USER_ID** on all devices
 4. **Restart the app** after creating/modifying `.env`
 5. **Check browser console** for error messages
 

@@ -209,9 +209,9 @@ const SyncSettings = ({ isOpen, onClose }) => {
               <li>
                 Create a <code className="bg-blue-100 px-1 rounded">.env</code> file in your project root with:
                 <pre className="bg-slate-900 text-green-400 p-2 rounded mt-1 text-xs overflow-x-auto">
-{`REACT_APP_SUPABASE_URL=your_url
-REACT_APP_SUPABASE_ANON_KEY=your_key
-REACT_APP_USER_ID=my_user_id`}
+{`VITE_SUPABASE_URL=your_url
+VITE_SUPABASE_ANON_KEY=your_key
+VITE_USER_ID=my_user_id`}
                 </pre>
               </li>
               <li>Run the database setup SQL (see below)</li>
