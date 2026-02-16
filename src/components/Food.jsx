@@ -74,11 +74,12 @@ const Food = () => {
     setCurrentWeekStart(getMondayOfWeek());
   };
 
-  // Format week date range for display
+  // Format week date range for display (Monday to Sunday)
   const formatWeekRange = () => {
-    const start = new Date(currentWeekStart);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
+    // Parse as local date to avoid timezone shifts
+    const [year, month, day] = currentWeekStart.split('-').map(Number);
+    const start = new Date(year, month - 1, day);
+    const end = new Date(year, month - 1, day + 6);
 
     const options = { month: 'short', day: 'numeric' };
     const startStr = start.toLocaleDateString('en-US', options);
@@ -390,17 +391,23 @@ const Food = () => {
                   <td className="p-2 font-semibold text-slate-700 text-xs sm:text-sm border border-slate-200 bg-slate-50">
                     {mealNames[meal]}
                   </td>
-                  {days.map(day => (
-                    <td key={`${day}-${meal}`} className="p-1 border border-slate-200">
-                      <input
-                        type="text"
-                        value={getCurrentMealPlan()[day]?.[meal] || ''}
-                        onChange={(e) => updateMeal(day, meal, e.target.value)}
-                        placeholder="..."
-                        className="w-full px-2 py-1.5 text-xs sm:text-sm border-0 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded bg-transparent hover:bg-white transition-colors"
-                      />
-                    </td>
-                  ))}
+                  {days.map(day => {
+                    const cellValue = getCurrentMealPlan()[day]?.[meal] || '';
+                    const isEmpty = cellValue.trim() === '';
+                    return (
+                      <td key={`${day}-${meal}`} className="p-1 border border-slate-200">
+                        <input
+                          type="text"
+                          value={cellValue}
+                          onChange={(e) => updateMeal(day, meal, e.target.value)}
+                          placeholder="..."
+                          className={`w-full px-2 py-1.5 text-xs sm:text-sm border-0 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded transition-colors ${
+                            isEmpty ? 'bg-red-50 hover:bg-red-100' : 'bg-green-50 hover:bg-green-100'
+                          }`}
+                        />
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
