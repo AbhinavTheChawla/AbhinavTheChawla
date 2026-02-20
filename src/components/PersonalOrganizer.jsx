@@ -36,9 +36,11 @@ const PersonalOrganizer = () => {
   const userId = useStore((state) => state.userId);
 
   // Initialize active tab from localStorage or default to 'media'
+  // Grooming tab is archived - redirect to media if it was previously active
   const [activeTab, setActiveTab] = useState(() => {
     const savedTab = localStorage.getItem('activeTab');
-    return savedTab || 'media';
+    if (!savedTab || savedTab === 'grooming') return 'media';
+    return savedTab;
   });
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -429,16 +431,6 @@ const PersonalOrganizer = () => {
             Wardrobe
           </button>
           <button
-            onClick={() => setActiveTab('grooming')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
-              activeTab === 'grooming'
-                ? 'border-purple-600 text-purple-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Grooming
-          </button>
-          <button
             onClick={() => setActiveTab('food')}
             className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
               activeTab === 'food'
@@ -655,11 +647,6 @@ const PersonalOrganizer = () => {
           </div>
         </div>
           </>
-        )}
-
-        {/* Grooming Journal Tab Content */}
-        {activeTab === 'grooming' && (
-          <GroomingJournal />
         )}
 
         {/* Food Tab Content */}
