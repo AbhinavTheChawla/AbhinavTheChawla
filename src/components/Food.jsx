@@ -1,24 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2, ChevronLeft, ChevronRight, Copy, ClipboardPaste } from 'lucide-react';
+import { Plus, X, Trash2, Download } from 'lucide-react';
 import useStore from '../store';
 
 const Food = () => {
   const foodData = useStore((state) => state.foodData);
   const updateFoodData = useStore((state) => state.updateFoodData);
   const reloadFromStorage = useStore((state) => state.reloadFromStorage);
-
-  // Helper to get Monday of a given week
-  const getMondayOfWeek = (date = new Date()) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-    return monday.toISOString().split('T')[0];
-  };
-
-  // State for current viewed week
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => getMondayOfWeek());
 
   // Listen for cross-device sync events
   useEffect(() => {
@@ -43,137 +30,6 @@ const Food = () => {
   const [showDeletedModal, setShowDeletedModal] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [editSuggestionIndex, setEditSuggestionIndex] = useState({});
-  const [copiedWeekData, setCopiedWeekData] = useState(null);
-
-  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-  const dayNames = {
-    monday: 'Monday',
-    tuesday: 'Tuesday',
-    wednesday: 'Wednesday',
-    thursday: 'Thursday',
-    friday: 'Friday',
-    saturday: 'Saturday',
-    sunday: 'Sunday'
-  };
-  const meals = ['breakfast', 'lunch', 'dinner', 'snack'];
-  const mealNames = {
-    breakfast: 'Breakfast',
-    lunch: 'Lunch',
-    dinner: 'Dinner',
-    snack: 'Snack'
-  };
-
-  // Week navigation functions
-  const navigateWeek = (direction) => {
-    const current = new Date(currentWeekStart);
-    current.setDate(current.getDate() + (direction * 7));
-    setCurrentWeekStart(current.toISOString().split('T')[0]);
-  };
-
-  const goToCurrentWeek = () => {
-    setCurrentWeekStart(getMondayOfWeek());
-  };
-
-  // Format week date range for display (Monday to Sunday)
-  const formatWeekRange = () => {
-    // Parse as local date to avoid timezone shifts
-    const [year, month, day] = currentWeekStart.split('-').map(Number);
-    const start = new Date(year, month - 1, day);
-    const end = new Date(year, month - 1, day + 6);
-
-    const options = { month: 'short', day: 'numeric' };
-    const startStr = start.toLocaleDateString('en-US', options);
-    const endStr = end.toLocaleDateString('en-US', { ...options, year: 'numeric' });
-
-    return `${startStr} - ${endStr}`;
-  };
-
-  // Check if viewing current week
-  const isCurrentWeek = () => currentWeekStart === getMondayOfWeek();
-
-  // Get empty meal plan structure
-  const getEmptyMealPlan = () => ({
-    monday: { breakfast: '', lunch: '', dinner: '', snack: '' },
-    tuesday: { breakfast: '', lunch: '', dinner: '', snack: '' },
-    wednesday: { breakfast: '', lunch: '', dinner: '', snack: '' },
-    thursday: { breakfast: '', lunch: '', dinner: '', snack: '' },
-    friday: { breakfast: '', lunch: '', dinner: '', snack: '' },
-    saturday: { breakfast: '', lunch: '', dinner: '', snack: '' },
-    sunday: { breakfast: '', lunch: '', dinner: '', snack: '' }
-  });
-
-  // Get meal plan for current week (supports both old format and new week-based format)
-  const getCurrentMealPlan = () => {
-    const mealPlans = foodData.mealPlans || {};
-
-    // If we have week-based data for this week, use it
-    if (mealPlans[currentWeekStart]) {
-      return mealPlans[currentWeekStart];
-    }
-
-    // Migration: If viewing current week and old mealPlan exists with data, use it
-    if (isCurrentWeek() && foodData.mealPlan) {
-      const hasData = days.some(day =>
-        meals.some(meal => foodData.mealPlan[day]?.[meal])
-      );
-      if (hasData) {
-        return foodData.mealPlan;
-      }
-    }
-
-    return getEmptyMealPlan();
-  };
-
-  // Meal plan handlers
-  const updateMeal = (day, meal, value) => {
-    const currentPlan = getCurrentMealPlan();
-    const updatedPlan = {
-      ...currentPlan,
-      [day]: {
-        ...currentPlan[day],
-        [meal]: value
-      }
-    };
-
-    // Store in week-based structure
-    const mealPlans = { ...foodData.mealPlans } || {};
-    mealPlans[currentWeekStart] = updatedPlan;
-
-    updateFoodData({
-      ...foodData,
-      mealPlans
-    });
-  };
-
-  const clearAllMeals = () => {
-    const mealPlans = { ...foodData.mealPlans } || {};
-    mealPlans[currentWeekStart] = getEmptyMealPlan();
-
-    updateFoodData({
-      ...foodData,
-      mealPlans
-    });
-  };
-
-  // Copy current week's meal plan
-  const copyWeek = () => {
-    const currentPlan = getCurrentMealPlan();
-    // Deep copy to avoid reference issues
-    setCopiedWeekData(JSON.parse(JSON.stringify(currentPlan)));
-  };
-
-  // Paste copied meal plan to current week
-  const pasteWeek = () => {
-    if (!copiedWeekData) return;
-
-    const mealPlans = { ...foodData.mealPlans } || {};
-    mealPlans[currentWeekStart] = JSON.parse(JSON.stringify(copiedWeekData));
-
-    updateFoodData({
-      ...foodData,
-      mealPlans
-    });
-  };
 
   // Recipe handlers
   const addRecipe = () => {
@@ -294,6 +150,37 @@ const Food = () => {
     return selectedFilters.every(filter => recipeTags.includes(filter));
   };
 
+  const exportRecipesCSV = () => {
+    const escapeCell = (value) => {
+      const str = (value ?? '').toString();
+      // Wrap in quotes if the value contains a comma, quote, or newline
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const header = ['Recipe Name', 'Recipe Link', 'Tags', 'Description'];
+    const rows = foodData.recipes.map((recipe) => {
+      const tags = (recipe.tags || (recipe.tag ? [recipe.tag] : [])).join('; ');
+      return [
+        escapeCell(recipe.name),
+        escapeCell(recipe.link),
+        escapeCell(tags),
+        escapeCell(recipe.description),
+      ].join(',');
+    });
+
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'recipes.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Get filtered tag suggestions based on input
   const getTagSuggestions = (input) => {
     if (!input.trim()) return [];
@@ -306,118 +193,21 @@ const Food = () => {
 
   return (
     <div className="space-y-6">
-      {/* Food Planner Section */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Weekly Meal Planner</h2>
-
-          {/* Week Navigation */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigateWeek(-1)}
-              className="p-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
-              title="Previous week"
-            >
-              <ChevronLeft size={20} />
-            </button>
-
-            <div className="flex flex-col items-center min-w-[160px]">
-              <span className="text-sm font-semibold text-slate-700">{formatWeekRange()}</span>
-              {!isCurrentWeek() && (
-                <button
-                  onClick={goToCurrentWeek}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 underline mt-0.5"
-                >
-                  Go to current week
-                </button>
-              )}
-            </div>
-
-            <button
-              onClick={() => navigateWeek(1)}
-              className="p-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-all"
-              title="Next week"
-            >
-              <ChevronRight size={20} />
-            </button>
-
-            <button
-              onClick={copyWeek}
-              className="p-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-all"
-              title="Copy this week's meals"
-            >
-              <Copy size={16} />
-            </button>
-
-            <button
-              onClick={pasteWeek}
-              disabled={!copiedWeekData}
-              className={`p-2 rounded-lg transition-all ${
-                copiedWeekData
-                  ? 'bg-green-500 text-white hover:bg-green-600'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-              title={copiedWeekData ? "Paste copied meals to this week" : "Copy a week first"}
-            >
-              <ClipboardPaste size={16} />
-            </button>
-
-            <button
-              onClick={clearAllMeals}
-              className="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all flex items-center gap-1"
-              title="Clear this week"
-            >
-              <Trash2 size={16} />
-              <span className="hidden sm:inline">Clear</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
-                <th className="p-2 text-left font-semibold text-xs sm:text-sm border border-slate-600">Meal</th>
-                {days.map(day => (
-                  <th key={day} className="p-2 text-left font-semibold text-xs sm:text-sm border border-slate-600">
-                    {dayNames[day]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {meals.map(meal => (
-                <tr key={meal} className="hover:bg-indigo-50/50 transition-colors">
-                  <td className="p-2 font-semibold text-slate-700 text-xs sm:text-sm border border-slate-200 bg-slate-50">
-                    {mealNames[meal]}
-                  </td>
-                  {days.map(day => {
-                    const cellValue = getCurrentMealPlan()[day]?.[meal] || '';
-                    const isEmpty = cellValue.trim() === '';
-                    return (
-                      <td key={`${day}-${meal}`} className="p-1 border border-slate-200">
-                        <input
-                          type="text"
-                          value={cellValue}
-                          onChange={(e) => updateMeal(day, meal, e.target.value)}
-                          placeholder="..."
-                          className={`w-full px-2 py-1.5 text-xs sm:text-sm border-0 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded transition-colors ${
-                            isEmpty ? 'bg-red-50 hover:bg-red-100' : 'bg-green-50 hover:bg-green-100'
-                          }`}
-                        />
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       {/* Recipe Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4">Recipes</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Recipes</h2>
+          {foodData.recipes.length > 0 && (
+            <button
+              onClick={exportRecipesCSV}
+              className="px-3 py-2 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300 transition-all flex items-center gap-1.5"
+              title="Export recipes to CSV"
+            >
+              <Download size={15} />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
+          )}
+        </div>
 
         <div className="mb-4 space-y-2">
           <input
