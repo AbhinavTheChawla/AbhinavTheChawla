@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2 } from 'lucide-react';
+import { Plus, X, Trash2, Download } from 'lucide-react';
 import useStore from '../store';
 
 const Food = () => {
@@ -150,6 +150,37 @@ const Food = () => {
     return selectedFilters.every(filter => recipeTags.includes(filter));
   };
 
+  const exportRecipesCSV = () => {
+    const escapeCell = (value) => {
+      const str = (value ?? '').toString();
+      // Wrap in quotes if the value contains a comma, quote, or newline
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const header = ['Recipe Name', 'Recipe Link', 'Tags', 'Description'];
+    const rows = foodData.recipes.map((recipe) => {
+      const tags = (recipe.tags || (recipe.tag ? [recipe.tag] : [])).join('; ');
+      return [
+        escapeCell(recipe.name),
+        escapeCell(recipe.link),
+        escapeCell(tags),
+        escapeCell(recipe.description),
+      ].join(',');
+    });
+
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'recipes.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Get filtered tag suggestions based on input
   const getTagSuggestions = (input) => {
     if (!input.trim()) return [];
@@ -164,7 +195,19 @@ const Food = () => {
     <div className="space-y-6">
       {/* Recipe Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-200">
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4">Recipes</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Recipes</h2>
+          {foodData.recipes.length > 0 && (
+            <button
+              onClick={exportRecipesCSV}
+              className="px-3 py-2 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300 transition-all flex items-center gap-1.5"
+              title="Export recipes to CSV"
+            >
+              <Download size={15} />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
+          )}
+        </div>
 
         <div className="mb-4 space-y-2">
           <input
