@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Settings, Keyboard } from 'lucide-react';
+import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Settings } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Todo from './Todo';
 import SyncSettings from './SyncSettings';
 import Food from './Food';
 import Media from './Media';
-import TypingTest from './TypingTest';
 import useStore from '../store';
 import { initializeSupabase } from '../services/supabaseClient';
 import { syncService } from '../services/syncService';
@@ -36,10 +35,10 @@ const PersonalOrganizer = () => {
   const userId = useStore((state) => state.userId);
 
   // Initialize active tab from localStorage or default to 'media'
-  // Grooming tab is archived - redirect to media if it was previously active
+  // Grooming and Typing Test tabs are archived - redirect to media if previously active
   const [activeTab, setActiveTab] = useState(() => {
     const savedTab = localStorage.getItem('activeTab');
-    if (!savedTab || savedTab === 'grooming') return 'media';
+    if (!savedTab || savedTab === 'grooming' || savedTab === 'typing') return 'media';
     return savedTab;
   });
   const [showWishlistModal, setShowWishlistModal] = useState(false);
@@ -440,18 +439,6 @@ const PersonalOrganizer = () => {
           >
             Food
           </button>
-          <button
-            onClick={() => setActiveTab('typing')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 flex items-center gap-1 sm:gap-2 whitespace-nowrap ${
-              activeTab === 'typing'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            <Keyboard size={14} />
-            <span className="hidden sm:inline">Typing Test</span>
-            <span className="sm:hidden">Typing</span>
-          </button>
         </div>
 
         {/* Media Tab Content */}
@@ -654,10 +641,6 @@ const PersonalOrganizer = () => {
           <Food />
         )}
 
-        {/* Typing Test Tab Content */}
-        {activeTab === 'typing' && (
-          <TypingTest />
-        )}
       </div>
     </div>
   );
