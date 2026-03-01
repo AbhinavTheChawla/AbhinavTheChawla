@@ -4,7 +4,6 @@ import GroomingJournal from './GroomingJournal';
 import Todo from './Todo';
 import SyncSettings from './SyncSettings';
 import Food from './Food';
-import Media from './Media';
 import useStore from '../store';
 import { initializeSupabase } from '../services/supabaseClient';
 import { syncService } from '../services/syncService';
@@ -34,11 +33,11 @@ const PersonalOrganizer = () => {
   const supabaseAnonKey = useStore((state) => state.supabaseAnonKey);
   const userId = useStore((state) => state.userId);
 
-  // Initialize active tab from localStorage or default to 'media'
-  // Grooming and Typing Test tabs are archived - redirect to media if previously active
+  // Initialize active tab from localStorage or default to 'wardrobe'
+  // Grooming, Typing Test, and Media tabs are archived - redirect to wardrobe if previously active
   const [activeTab, setActiveTab] = useState(() => {
     const savedTab = localStorage.getItem('activeTab');
-    if (!savedTab || savedTab === 'grooming' || savedTab === 'typing') return 'media';
+    if (!savedTab || savedTab === 'grooming' || savedTab === 'typing' || savedTab === 'media') return 'wardrobe';
     return savedTab;
   });
   const [showWishlistModal, setShowWishlistModal] = useState(false);
@@ -410,16 +409,6 @@ const PersonalOrganizer = () => {
         {/* Tab Navigation */}
         <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6 border-b border-slate-200 overflow-x-auto">
           <button
-            onClick={() => setActiveTab('media')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
-              activeTab === 'media'
-                ? 'border-orange-600 text-orange-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Media
-          </button>
-          <button
             onClick={() => setActiveTab('wardrobe')}
             className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
               activeTab === 'wardrobe'
@@ -440,11 +429,6 @@ const PersonalOrganizer = () => {
             Food
           </button>
         </div>
-
-        {/* Media Tab Content */}
-        {activeTab === 'media' && (
-          <Media />
-        )}
 
         {/* Wardrobe Tab Content */}
         {activeTab === 'wardrobe' && (
