@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Settings } from 'lucide-react';
+import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Settings, GripVertical } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Todo from './Todo';
 import SyncSettings from './SyncSettings';
@@ -47,6 +47,10 @@ const PersonalOrganizer = () => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showSyncSettings, setShowSyncSettings] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
+
+  // Drag-and-drop state
+  const [dragSource, setDragSource] = useState(null); // { categoryId, col, itemIndex }
+  const [dragOverPos, setDragOverPos] = useState(null); // { categoryId, col, itemIndex }
 
   // Column resize state
   const [columnWidths, setColumnWidths] = useState({
@@ -275,6 +279,105 @@ const PersonalOrganizer = () => {
     const newData = { ...wardrobeData };
     delete newData[categoryId];
     updateWardrobe(newData);
+  };
+
+  const moveItem = (srcCatId, srcCol, srcIdx, tgtCatId, tgtCol, tgtIdx) => {
+    srcCatId = parseInt(srcCatId);
+    tgtCatId = parseInt(tgtCatId);
+
+    const newData = { ...wardrobeData };
+    const srcItems = [...(newData[srcCatId]?.[srcCol] || [])];
+    const [movedItem] = srcItems.splice(srcIdx, 1);
+
+    let finalTgtIdx;
+
+    if (srcCatId === tgtCatId && srcCol === tgtCol) {
+      // Same cell reorder
+      finalTgtIdx = tgtIdx > srcIdx ? tgtIdx - 1 : tgtIdx;
+      srcItems.splice(finalTgtIdx, 0, movedItem);
+      newData[srcCatId] = { ...newData[srcCatId], [srcCol]: srcItems };
+    } else {
+      // Cross-cell move
+      finalTgtIdx = tgtIdx;
+      const tgtItems = [...(newData[tgtCatId]?.[tgtCol] || [])];
+      tgtItems.splice(tgtIdx, 0, movedItem);
+      newData[srcCatId] = { ...newData[srcCatId], [srcCol]: srcItems };
+      newData[tgtCatId] = { ...newData[tgtCatId], [tgtCol]: tgtItems };
+    }
+
+    // Remap index-based keys (wishlist and brandUrls) after the move
+    const remapKey = (catId, col, idx) => {
+      catId = parseInt(catId);
+      idx = parseInt(idx);
+
+      if (srcCatId === tgtCatId && srcCol === tgtCol) {
+        if (catId !== srcCatId || col !== srcCol) return `${catId}-${col}-${idx}`;
+        if (idx === srcIdx) return `${tgtCatId}-${tgtCol}-${finalTgtIdx}`;
+        if (tgtIdx > srcIdx && idx > srcIdx && idx <= tgtIdx - 1) return `${catId}-${col}-${idx - 1}`;
+        if (tgtIdx < srcIdx && idx >= tgtIdx && idx < srcIdx) return `${catId}-${col}-${idx + 1}`;
+      } else {
+        if (catId === srcCatId && col === srcCol) {
+          if (idx === srcIdx) return `${tgtCatId}-${tgtCol}-${finalTgtIdx}`;
+          if (idx > srcIdx) return `${catId}-${col}-${idx - 1}`;
+        } else if (catId === tgtCatId && col === tgtCol) {
+          if (idx >= tgtIdx) return `${catId}-${col}-${idx + 1}`;
+        }
+      }
+      return `${catId}-${col}-${idx}`;
+    };
+
+    const newWishlist = new Set();
+    Array.from(wishlist).forEach(key => {
+      const parts = key.split('-');
+      newWishlist.add(remapKey(parts[0], parts[1], parts[2]));
+    });
+
+    const newBrandUrls = {};
+    Object.entries(brandUrls).forEach(([key, url]) => {
+      const parts = key.split('-');
+      newBrandUrls[remapKey(parts[0], parts[1], parts[2])] = url;
+    });
+
+    updateWardrobe(newData);
+    updateWishlist(newWishlist);
+    updateBrandUrls(newBrandUrls);
+  };
+
+  const handleDragStart = (e, categoryId, col, itemIndex) => {
+    setDragSource({ categoryId: parseInt(categoryId), col, itemIndex });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', ''); // required for Firefox
+  };
+
+  const handleDragOver = (e, categoryId, col, itemIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverPos({ categoryId: parseInt(categoryId), col, itemIndex });
+  };
+
+  const handleDrop = (e, tgtCatId, tgtCol, tgtItemIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dragSource) return;
+    // Skip if dropped exactly on itself
+    if (
+      dragSource.categoryId === parseInt(tgtCatId) &&
+      dragSource.col === tgtCol &&
+      dragSource.itemIndex === tgtItemIndex
+    ) {
+      setDragSource(null);
+      setDragOverPos(null);
+      return;
+    }
+    moveItem(dragSource.categoryId, dragSource.col, dragSource.itemIndex, parseInt(tgtCatId), tgtCol, tgtItemIndex);
+    setDragSource(null);
+    setDragOverPos(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragSource(null);
+    setDragOverPos(null);
   };
 
   const updateCategoryName = (categoryId, name) => {
@@ -517,37 +620,67 @@ const PersonalOrganizer = () => {
                     </td>
                     {columns.map(col => {
                       const items = wardrobeData[category.id]?.[col] || [];
+                      const isCellDragTarget =
+                        dragOverPos?.categoryId === category.id &&
+                        dragOverPos?.col === col &&
+                        dragOverPos?.itemIndex === items.length;
 
                       return (
-                        <td key={col} className="p-1 sm:p-2 md:p-3">
-                          <div className="space-y-1 sm:space-y-1.5">
+                        <td
+                          key={col}
+                          className="p-1 sm:p-2 md:p-3"
+                          onDragOver={(e) => handleDragOver(e, category.id, col, items.length)}
+                          onDrop={(e) => handleDrop(e, category.id, col, items.length)}
+                        >
+                          <div className="space-y-0.5">
                             {items.map((item, itemIndex) => {
                               const itemKey = `${category.id}-${col}-${itemIndex}`;
                               const isWishlist = wishlist.has(itemKey);
                               const isEditing = editingItem === itemKey;
-
-                              // For brands column, handle URL linking
                               const isBrandsColumn = col === 'brands';
                               const brandUrl = brandUrls[itemKey] || '';
+                              const isDraggingThis =
+                                dragSource?.categoryId === category.id &&
+                                dragSource?.col === col &&
+                                dragSource?.itemIndex === itemIndex;
+                              const isDropTarget =
+                                dragOverPos?.categoryId === category.id &&
+                                dragOverPos?.col === col &&
+                                dragOverPos?.itemIndex === itemIndex;
 
                               return (
-                                <div key={itemIndex} className="flex items-center gap-1 sm:gap-2 group">
+                                <div
+                                  key={itemKey}
+                                  draggable={!isEditing}
+                                  onDragStart={(e) => handleDragStart(e, category.id, col, itemIndex)}
+                                  onDragOver={(e) => handleDragOver(e, category.id, col, itemIndex)}
+                                  onDrop={(e) => handleDrop(e, category.id, col, itemIndex)}
+                                  onDragEnd={handleDragEnd}
+                                  className={`flex items-center gap-1 sm:gap-1.5 group rounded-lg transition-all duration-100
+                                    ${isDraggingThis ? 'opacity-40' : ''}
+                                    ${isDropTarget ? 'border-t-2 border-indigo-500 pt-0.5' : 'border-t-2 border-transparent'}
+                                  `}
+                                >
+                                  {/* Drag handle */}
+                                  <GripVertical
+                                    size={12}
+                                    className="flex-shrink-0 text-slate-200 group-hover:text-slate-400 cursor-grab active:cursor-grabbing transition-colors duration-150"
+                                  />
+
                                   {!isBrandsColumn && (
-                                    <>
-                                      <button
-                                        onClick={() => toggleWishlist(category.id, col, itemIndex)}
-                                        className="flex-shrink-0 transition-all duration-150"
-                                        title="Add to wishlist"
-                                      >
-                                        <ShoppingCart
-                                          size={14}
-                                          className={`sm:w-4 sm:h-4 ${isWishlist
-                                            ? 'fill-emerald-500 text-emerald-500'
-                                            : 'text-slate-300 group-hover:text-slate-400 hover:scale-110'
-                                          }`}
-                                        />
-                                      </button>
-                                    </>
+                                    <button
+                                      onClick={() => toggleWishlist(category.id, col, itemIndex)}
+                                      className="flex-shrink-0 transition-all duration-150"
+                                      title="Add to wishlist"
+                                    >
+                                      <ShoppingCart
+                                        size={14}
+                                        className={`sm:w-4 sm:h-4 ${isWishlist
+                                          ? 'fill-emerald-500 text-emerald-500'
+                                          : 'text-slate-300 group-hover:text-slate-400 hover:scale-110'
+                                        }`}
+                                      />
+                                    </button>
                                   )}
                                   {isEditing ? (
                                     <input
@@ -600,6 +733,10 @@ const PersonalOrganizer = () => {
                                 </div>
                               );
                             })}
+                            {/* Drop zone at end of cell */}
+                            <div
+                              className={`h-1.5 rounded transition-colors duration-100 ${isCellDragTarget ? 'bg-indigo-300' : ''}`}
+                            />
                             <button
                               onClick={() => addItem(category.id, col)}
                               className="text-indigo-600 hover:text-indigo-700 flex items-center font-medium transition-colors duration-150"
