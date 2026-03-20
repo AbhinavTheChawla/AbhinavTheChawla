@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Settings, GripVertical } from 'lucide-react';
+import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Settings, GripVertical, Pencil } from 'lucide-react';
 import GroomingJournal from './GroomingJournal';
 import Todo from './Todo';
 import SyncSettings from './SyncSettings';
@@ -27,6 +27,8 @@ const PersonalOrganizer = () => {
   const updateWishlist = useStore((state) => state.updateWishlist);
   const updateBrandUrls = useStore((state) => state.updateBrandUrls);
   const updateWishlistUrls = useStore((state) => state.updateWishlistUrls);
+  const itemNotes = useStore((state) => state.itemNotes);
+  const updateItemNotes = useStore((state) => state.updateItemNotes);
   const reloadFromStorage = useStore((state) => state.reloadFromStorage);
 
   const supabaseUrl = useStore((state) => state.supabaseUrl);
@@ -42,6 +44,7 @@ const PersonalOrganizer = () => {
   });
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [detailItem, setDetailItem] = useState(null); // { itemKey, item, categoryId, col, itemIndex }
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingBrandUrl, setEditingBrandUrl] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -707,10 +710,13 @@ const PersonalOrganizer = () => {
                                         </a>
                                       ) : (
                                         <span
-                                          onClick={() => setEditingItem(itemKey)}
+                                          onClick={() => setDetailItem({ itemKey, item, categoryId: category.id, col, itemIndex })}
                                           className="flex-1 text-xs sm:text-sm cursor-pointer hover:bg-indigo-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors duration-150 text-slate-700 break-words"
                                         >
-                                          {item || <span className="text-slate-400">Click to edit...</span>}
+                                          {item || <span className="text-slate-400">Click for notes...</span>}
+                                          {itemNotes[itemKey] && (
+                                            <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-indigo-400 align-middle" title="Has notes" />
+                                          )}
                                         </span>
                                       )}
                                       {isBrandsColumn && (
@@ -725,8 +731,16 @@ const PersonalOrganizer = () => {
                                     </div>
                                   )}
                                   <button
+                                    onClick={() => setEditingItem(itemKey)}
+                                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-indigo-600 transition-all duration-150 hover:scale-110"
+                                    title="Edit item"
+                                  >
+                                    <Pencil size={13} className="sm:w-3.5 sm:h-3.5" />
+                                  </button>
+                                  <button
                                     onClick={() => deleteItem(category.id, col, itemIndex)}
                                     className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-all duration-150 hover:scale-110"
+                                    title="Delete item"
                                   >
                                     <X size={14} className="sm:w-4 sm:h-4" />
                                   </button>
@@ -763,6 +777,49 @@ const PersonalOrganizer = () => {
         )}
 
       </div>
+
+      {/* Item Detail Modal */}
+      {detailItem && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setDetailItem(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-800 break-words flex-1 mr-4">
+                {detailItem.item || <span className="text-slate-400 italic">Unnamed item</span>}
+              </h3>
+              <button
+                onClick={() => setDetailItem(null)}
+                className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <textarea
+              className="w-full h-48 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none text-slate-700 placeholder:text-slate-300"
+              placeholder="Add notes about this item..."
+              value={itemNotes[detailItem.itemKey] || ''}
+              onChange={(e) => {
+                const updated = { ...itemNotes, [detailItem.itemKey]: e.target.value };
+                updateItemNotes(updated);
+              }}
+              autoFocus
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={() => setDetailItem(null)}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition-colors font-medium"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
