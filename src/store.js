@@ -107,6 +107,7 @@ const useStore = create((set, get) => ({
   brandUrls: loadFromStorage('wardrobe_brand_urls', {}),
   wishlistUrls: loadFromStorage('wardrobe_wishlist_urls', {}),
   imageUrls: loadFromStorage('wardrobe_image_urls', {}),
+  itemNotes: loadFromStorage('wardrobe_item_notes', {}),
 
   // Grooming State
   groomingData: loadFromStorage('groomingData', {
@@ -277,6 +278,11 @@ const useStore = create((set, get) => ({
   updateImageUrls: (imageUrls) => {
     set({ imageUrls });
     saveToStorage('wardrobe_image_urls', imageUrls);
+  },
+
+  updateItemNotes: (itemNotes) => {
+    set({ itemNotes });
+    saveToStorage('wardrobe_item_notes', itemNotes);
   },
 
   // Actions for Grooming
