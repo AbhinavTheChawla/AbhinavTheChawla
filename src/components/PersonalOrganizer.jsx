@@ -3,7 +3,6 @@ import { Plus, Trash2, X, ShoppingCart, ExternalLink, Heart, Settings, GripVerti
 import GroomingJournal from './GroomingJournal';
 import Todo from './Todo';
 import SyncSettings from './SyncSettings';
-import Food from './Food';
 import useStore from '../store';
 import { initializeSupabase } from '../services/supabaseClient';
 import { syncService } from '../services/syncService';
@@ -15,7 +14,6 @@ const PersonalOrganizer = () => {
   const wishlist = useStore((state) => state.wishlist);
   const brandUrls = useStore((state) => state.brandUrls);
   const wishlistUrls = useStore((state) => state.wishlistUrls);
-  const foodData = useStore((state) => state.foodData);
   const mediaData = useStore((state) => state.mediaData);
   const groomingData = useStore((state) => state.groomingData);
   const dailyReflection = useStore((state) => state.dailyReflection);
@@ -158,7 +156,7 @@ const PersonalOrganizer = () => {
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, foodData, mediaData, groomingData, dailyReflection, weeklyTracker, weightData, supabaseUrl, supabaseAnonKey, userId]);
+  }, [categories, wardrobeData, wishlist, brandUrls, wishlistUrls, mediaData, groomingData, dailyReflection, weeklyTracker, weightData, supabaseUrl, supabaseAnonKey, userId]);
 
   // Real-time polling for cross-device sync (check every 10 seconds)
   useEffect(() => {
@@ -524,16 +522,6 @@ const PersonalOrganizer = () => {
           >
             Wardrobe
           </button>
-          <button
-            onClick={() => setActiveTab('food')}
-            className={`px-3 sm:px-6 py-2 sm:py-3 font-semibold text-xs sm:text-sm transition-all duration-200 border-b-2 whitespace-nowrap ${
-              activeTab === 'food'
-                ? 'border-green-600 text-green-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Food
-          </button>
         </div>
 
         {/* Wardrobe Tab Content */}
@@ -771,10 +759,6 @@ const PersonalOrganizer = () => {
           </>
         )}
 
-        {/* Food Tab Content */}
-        {activeTab === 'food' && (
-          <Food />
-        )}
 
       </div>
 
